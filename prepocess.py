@@ -150,8 +150,7 @@ def getTfidfVector(clean_corpus):
 #    features = np.array(tfv.get_feature_names())
     train_charngrams =  tfv.transform(clean_corpus.iloc[:train.shape[0]])
 #    test_charngrams = tfv.transform(clean_corpus.iloc[train.shape[0]:])
-    
-    print("total time till charngrams",time.time()-start_time)
+
     
     return train_bigrams,train_charngrams,train_unigrams
 
@@ -173,7 +172,8 @@ def comment_to_seq(train,test,maxlen=1000,dimension=300,wordvecfile='glove42'):
     word_index=tokenizer.word_index
 
     num_words =len(word_index)
-    embedding_matrix = np.random.normal(loc=0.0, scale=1.0,size=(num_words,dimension))
+    embedding_matrix = np.random.normal(loc=0.0, scale=1.0,size=(num_words+1,dimension))
+    embedding_matrix[0]= 0
     embeddings_index = input.read_wordvec(wordvecfile)
 
     noword=0
@@ -186,8 +186,11 @@ def comment_to_seq(train,test,maxlen=1000,dimension=300,wordvecfile='glove42'):
     print(noword)
     return trainseq,testseq,embedding_matrix
 
+def splitTarget(filename):
+    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    labels=input.read_dataset(filename,list_classes)
+    labels.to_csv(PATH+'labels.csv',index=False)
 
 
 if __name__ == "__main__":
-    clean_dataset('train.csv')
-    clean_dataset('test.csv')
+    splitTarget('train.csv')
