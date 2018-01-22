@@ -11,7 +11,7 @@ from keras.layers.advanced_activations import PReLU
 from keras.layers.merge import concatenate
 from sklearn.cross_validation import KFold
 import numpy as np
-
+import pandas as pd
 def CnnBlock(name,input_layer,filters):
     def Res_Inception(input_layer, filters, activate=True):
         filters = int(filters / 4)
@@ -86,52 +86,53 @@ class dnn:
                       metrics=['accuracy'])
         self.batch_size=batch_size
 
-    def fit(self,X,Y,verbose=1):
-        self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose)
+    def fit(self,X,Y,verbose=1,initial_epoch=0):
+        self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,initial_epoch=initial_epoch)
 
     def predict(self,X,verbose=1):
         y=self.model.predict(X,verbose=verbose)
         return y
 
-    def cv(self,X,Y,test,K=10,seed=2018,geo_mean=True):
-        kf = KFold(len(X), n_folds=K, shuffle=True, random_state=seed)
 
-        results=[]
-        for i, (train_index, valid_index) in enumerate(kf):
-            print('第{}次训练...'.format(i))
-            trainset = X[train_index]
-            label_train=Y[train_index]
+def cv(get_model, X, Y, test, K=10, seed=2018, geo_mean=False):
+    kf = KFold(len(X), n_folds=K, shuffle=True, random_state=seed)
 
-            self.fit(trainset,label_train)
-            results.append(self.predict(test))
+    results = []
+    for i, (train_index, valid_index) in enumerate(kf):
+        print('第{}次训练...'.format(i))
+        trainset = X[train_index]
+        label_train = Y[train_index]
 
-        if geo_mean==True:
-            test_predicts = np.ones(results[0].shape)
-            for fold_predict in results:
-                test_predicts *= fold_predict
-            test_predicts **= (1. / len(results))
-        else:
-            test_predicts = np.zeros(results[0].shape)
-            for fold_predict in results:
-                test_predicts += fold_predict
-            test_predicts /= len(results)
+        model=get_model()
+        model.fit(trainset, label_train)
+        results.append(model.predict(test))
 
-        list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-        sample_submission = input.read_dataset('sample_submission.csv')
-        sample_submission[list_classes] = test_predicts
-        sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
+    if geo_mean == True:
+        test_predicts = np.ones(results[0].shape)
+        for fold_predict in results:
+            test_predicts *= fold_predict
+        test_predicts **= (1. / len(results))
+    else:
+        test_predicts = np.zeros(results[0].shape)
+        for fold_predict in results:
+            test_predicts += fold_predict
+        test_predicts /= len(results)
 
-
+    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    sample_submission = input.read_dataset('sample_submission.csv')
+    sample_submission[list_classes] = test_predicts
+    sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
 def train(maxlen=100):
+
 
     train,test=input.read_dataset('clean_train.csv'),input.read_dataset('clean_test.csv')
     labels=input.read_dataset('labels.csv').values
     train, test,embedding_matrix=prepocess.comment_to_seq(train,test,maxlen=maxlen)
 
-    model=dnn(128,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
+    getmodel=lambda:dnn(128,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
-    model.cv(train,labels,test)
+    cv(getmodel,train,labels,test)
 
 
 if __name__ == "__main__":
