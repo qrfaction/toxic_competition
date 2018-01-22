@@ -9,6 +9,8 @@ import input
 from keras.callbacks import EarlyStopping
 from keras.layers.advanced_activations import PReLU
 from keras.layers.merge import concatenate
+from sklearn.cross_validation import KFold
+import numpy as np
 
 def CnnBlock(name,input_layer,filters):
     def Res_Inception(input_layer, filters, activate=True):
@@ -61,38 +63,65 @@ def CnnBlock(name,input_layer,filters):
     elif name=='DenseNet':
         return DenseNet(input_layer,filters)
 
-def get_model(num_words,EMBEDDING_DIM,embedding_matrix,maxlen,trainable=True):
 
-    sequence_input = Input(shape=(maxlen,), dtype='int32')
-    embedding_layer = Embedding(num_words,
-                                EMBEDDING_DIM,
-                                weights=[embedding_matrix],
-                                input_length=maxlen,
-                                trainable=trainable)(sequence_input)
-    conv_layer=Conv1D(256,kernel_size=3,padding='same',strides=1)(embedding_layer)
-    conv_layer = PReLU()(conv_layer)
-    gru_layer = GRU(units=128, return_sequences=True, recurrent_dropout=0.2)(conv_layer)
+class dnn:
+    def __init__(self,batch_size,num_words,
+                 EMBEDDING_DIM, embedding_matrix, maxlen, trainable=False):
+        sequence_input = Input(shape=(maxlen,), dtype='int32')
+        embedding_layer = Embedding(num_words,
+                                    EMBEDDING_DIM,
+                                    weights=[embedding_matrix],
+                                    input_length=maxlen,
+                                    trainable=trainable)(sequence_input)
+        x = Bidirectional(GRU(64, return_sequences=True))(embedding_layer)
+        x = Dropout(0.3)(x)
+        x = Bidirectional(GRU(64, return_sequences=False))(x)
+        x = Dense(32, activation="relu")(x)
 
-    conv_layer =Conv1D(128, kernel_size=3, padding='same', strides=1)(gru_layer)
-    conv_layer = PReLU()(conv_layer)
-    gru_layer = GRU(units=64, return_sequences=True, recurrent_dropout=0.2)(conv_layer)
+        output = Dense(6, activation="sigmoid")(x)
+        self.model = Model(inputs=[sequence_input], outputs=[output])
+        optimizer = Adam(lr=0.001)
+        self.model.compile(loss='binary_crossentropy',
+                      optimizer=optimizer,
+                      metrics=['accuracy'])
+        self.batch_size=batch_size
 
-    conv_layer = Conv1D(64, kernel_size=3, padding='same', strides=2)(gru_layer)
-    conv_layer = PReLU()(conv_layer)
-    gru_layer = GRU(units=64, return_sequences=True,recurrent_dropout=0.2)(conv_layer)
+    def fit(self,X,Y,verbose=1):
+        self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose)
 
-    gru_layer = Bidirectional(GRU(units=32, return_sequences=False))(gru_layer)
-    x = Dense(64)(gru_layer)
-    x = PReLU()(x)
-    x = Dropout(0.5)(x)
-    output = Dense(6, activation="sigmoid")(x)
-    model = Model(inputs=[sequence_input], outputs=[output])
-    optimizer = Adam(lr=0.001)
-    model.compile(loss='binary_crossentropy',
-                  optimizer=optimizer,
-                  metrics=['accuracy'])
+    def predict(self,X,verbose=1):
+        y=self.model.predict(X,verbose=verbose)
+        return y
 
-    return model
+    def cv(self,X,Y,test,K=10,seed=2018,geo_mean=True):
+        kf = KFold(len(X), n_folds=K, shuffle=True, random_state=seed)
+
+        results=[]
+        for i, (train_index, valid_index) in enumerate(kf):
+            print('第{}次训练...'.format(i))
+            trainset = X[train_index]
+            label_train=Y[train_index]
+
+            self.fit(trainset,label_train)
+            results.append(self.predict(test))
+
+        if geo_mean==True:
+            test_predicts = np.ones(results[0].shape)
+            for fold_predict in results:
+                test_predicts *= fold_predict
+            test_predicts **= (1. / len(results))
+        else:
+            test_predicts = np.zeros(results[0].shape)
+            for fold_predict in results:
+                test_predicts += fold_predict
+            test_predicts /= len(results)
+
+        list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+        sample_submission = input.read_dataset('sample_submission.csv')
+        sample_submission[list_classes] = test_predicts
+        sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
+
+
 
 def train(maxlen=100):
 
@@ -100,21 +129,10 @@ def train(maxlen=100):
     labels=input.read_dataset('labels.csv').values
     train, test,embedding_matrix=prepocess.comment_to_seq(train,test,maxlen=maxlen)
 
-    model=get_model(len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
+    model=dnn(128,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
-    early = EarlyStopping(monitor="val_loss", mode="min", patience=5)
+    model.cv(train,labels,test)
 
-    callbacks_list = [ early]  # early
-    model.fit(train, labels, batch_size=128, epochs=1,callbacks=callbacks_list,
-              verbose=True)
-
-    sample_submission = input.read_dataset('sample_submission.csv')
-    y_test = model.predict(test,verbose=1)
-    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-
-    sample_submission[list_classes] = y_test
-
-    sample_submission.to_csv("baseline.csv.gz", index=False,compression='gzip')
 
 if __name__ == "__main__":
     train()

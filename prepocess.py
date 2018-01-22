@@ -163,7 +163,7 @@ def comment_to_seq(train,test,maxlen=1000,dimension=300,wordvecfile='glove42'):
     tokenizer.fit_on_texts(text)
 
     sequences = tokenizer.texts_to_sequences(text)
-    sequences = pad_sequences(sequences,maxlen=maxlen)
+    sequences = pad_sequences(sequences,maxlen=maxlen,truncating='post')
     trainseq=sequences[:len(train)]
     testseq=sequences[len(train):]
     assert len(trainseq) == len(train)
@@ -172,7 +172,7 @@ def comment_to_seq(train,test,maxlen=1000,dimension=300,wordvecfile='glove42'):
     word_index=tokenizer.word_index
 
     num_words =len(word_index)
-    embedding_matrix = np.random.normal(loc=0.0, scale=1.0,size=(num_words+1,dimension))
+    embedding_matrix = np.random.normal(loc=0.0, scale=0.33,size=(num_words+1,dimension))
     embedding_matrix[0]= 0
     embeddings_index = input.read_wordvec(wordvecfile)
 
