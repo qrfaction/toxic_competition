@@ -12,7 +12,7 @@ def work(wordmat):
     result={}
     for line in tqdm(wordmat):
         if line is not '':
-            wvec = line.split()
+            wvec = line.split(' ')
             result[wvec[0]] = np.asarray(wvec[1:], dtype='float32')
     return result
 

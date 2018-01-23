@@ -83,12 +83,16 @@ def clean(comment):
     #小写化：Hi与hi等同
     comment=comment.lower()
     #去除\n
-    comment=re.sub("\\n","",comment)
+    comment=re.sub("\\n+",".",comment)
     #去除IP
     comment=re.sub("\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}","",comment)
     #去除usernames
     comment=re.sub("\[\[.*\]","",comment)
-    
+    #去除网址
+    comment=re.sub("(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]"," ",comment)
+    #去除非ascii字符
+    comment = re.sub("[^\x00-\x7F]+", "", comment)
+
     #分离句子为单词
     words=tokenizer.tokenize(comment)
     
@@ -99,13 +103,13 @@ def clean(comment):
     
     clean_sent=" ".join(words)
     # remove any non alphanum,digit character
-    #clean_sent=re.sub("\W+"," ",clean_sent)
-    #clean_sent=re.sub("  "," ",clean_sent)
+    # clean_sent=re.sub("\W+"," ",clean_sent)
+    clean_sent=re.sub("\s+"," ",clean_sent)
     return(clean_sent)
 
 def clean_dataset(filename):
     dataset=input.read_dataset(filename,["id","comment_text"])
-    dataset.fillna(' ',inplace=True)
+    dataset.fillna('UNKNOW',inplace=True)
     dataset["comment_text"]=dataset["comment_text"].apply(clean)
     dataset.to_csv(PATH+'clean_'+filename,index=False)
     print(dataset)
@@ -154,7 +158,7 @@ def getTfidfVector(clean_corpus):
     
     return train_bigrams,train_charngrams,train_unigrams
 
-def comment_to_seq(train,test,maxlen=1000,dimension=300,wordvecfile='glove42'):
+def comment_to_seq(train,test,maxlen=100,dimension=300,wordvecfile='glove42'):
     from keras.preprocessing.text import Tokenizer
     train.fillna(' ',inplace=True)
     test.fillna(' ',inplace=True)
@@ -172,7 +176,8 @@ def comment_to_seq(train,test,maxlen=1000,dimension=300,wordvecfile='glove42'):
     word_index=tokenizer.word_index
 
     num_words =len(word_index)
-    embedding_matrix = np.random.normal(loc=0.0, scale=0.33,size=(num_words+1,dimension))
+    # embedding_matrix = np.random.normal(loc=0.0, scale=0.33,size=(num_words+1,dimension))
+    embedding_matrix = np.zeros((num_words+1,dimension))
     embedding_matrix[0]= 0
     embeddings_index = input.read_wordvec(wordvecfile)
 
@@ -193,4 +198,5 @@ def splitTarget(filename):
 
 
 if __name__ == "__main__":
-    splitTarget('train.csv')
+    clean_dataset('train.csv')
+    clean_dataset('test.csv')

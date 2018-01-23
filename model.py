@@ -12,6 +12,7 @@ from keras.layers.merge import concatenate
 from sklearn.cross_validation import KFold
 import numpy as np
 import pandas as pd
+
 def CnnBlock(name,input_layer,filters):
     def Res_Inception(input_layer, filters, activate=True):
         filters = int(filters / 4)
@@ -63,7 +64,6 @@ def CnnBlock(name,input_layer,filters):
     elif name=='DenseNet':
         return DenseNet(input_layer,filters)
 
-
 class dnn:
     def __init__(self,batch_size,num_words,
                  EMBEDDING_DIM, embedding_matrix, maxlen, trainable=False):
@@ -77,7 +77,6 @@ class dnn:
         x = Dropout(0.3)(x)
         x = Bidirectional(GRU(64, return_sequences=False))(x)
         x = Dense(32, activation="relu")(x)
-
         output = Dense(6, activation="sigmoid")(x)
         self.model = Model(inputs=[sequence_input], outputs=[output])
         optimizer = Adam(lr=0.001)
@@ -86,16 +85,15 @@ class dnn:
                       metrics=['accuracy'])
         self.batch_size=batch_size
 
-    def fit(self,X,Y,verbose=1,initial_epoch=0):
-        self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,initial_epoch=initial_epoch)
+    def fit(self,X,Y,verbose=1):
+        self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,shuffle=False)
 
     def predict(self,X,verbose=1):
         y=self.model.predict(X,verbose=verbose)
         return y
 
-
-def cv(get_model, X, Y, test, K=10, seed=2018, geo_mean=False):
-    kf = KFold(len(X), n_folds=K, shuffle=True, random_state=seed)
+def cv(get_model, X, Y, test,K=10, geo_mean=True):
+    kf = KFold(len(X), n_folds=K, shuffle=False)
 
     results = []
     for i, (train_index, valid_index) in enumerate(kf):
@@ -127,11 +125,18 @@ def train(maxlen=100):
 
 
     train,test=input.read_dataset('clean_train.csv'),input.read_dataset('clean_test.csv')
+
     labels=input.read_dataset('labels.csv').values
-    train, test,embedding_matrix=prepocess.comment_to_seq(train,test,maxlen=maxlen)
+    train, test,embedding_matrix=prepocess.comment_to_seq(train,test,maxlen=maxlen,wordvecfile='glove42')
 
-    getmodel=lambda:dnn(128,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
+    getmodel=lambda:dnn(256,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
+    # model=getmodel()
+    # model.fit(train,labels)
+    # list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    # sample_submission = input.read_dataset('sample_submission.csv')
+    # sample_submission[list_classes] = model.predict(test)
+    # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
     cv(getmodel,train,labels,test)
 
 
