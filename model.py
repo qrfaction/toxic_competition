@@ -1,12 +1,11 @@
-from keras.layers import Dense, Input, Flatten
+from keras.layers import Dense, Input
 from keras.layers import Conv1D, Embedding
 from keras.models import Model
 from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout,GRU,add
 from keras.layers.pooling import MaxPool1D
-from keras.optimizers import Adam
+from keras.optimizers import RMSprop
 import prepocess
 import input
-from keras.callbacks import EarlyStopping
 from keras.layers.advanced_activations import PReLU
 from keras.layers.merge import concatenate
 from sklearn.cross_validation import KFold
@@ -67,6 +66,7 @@ def CnnBlock(name,input_layer,filters):
 class dnn:
     def __init__(self,batch_size,num_words,
                  EMBEDDING_DIM, embedding_matrix, maxlen, trainable=False):
+
         sequence_input = Input(shape=(maxlen,), dtype='int32')
         embedding_layer = Embedding(num_words,
                                     EMBEDDING_DIM,
@@ -79,7 +79,7 @@ class dnn:
         x = Dense(32, activation="relu")(x)
         output = Dense(6, activation="sigmoid")(x)
         self.model = Model(inputs=[sequence_input], outputs=[output])
-        optimizer = Adam(lr=0.001)
+        optimizer = RMSprop(clipvalue=1, clipnorm=1)
         self.model.compile(loss='binary_crossentropy',
                       optimizer=optimizer,
                       metrics=['accuracy'])
@@ -89,21 +89,35 @@ class dnn:
         self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,shuffle=False)
 
     def predict(self,X,verbose=1):
-        y=self.model.predict(X,verbose=verbose)
-        return y
+        return self.model.predict(X,verbose=verbose)
+
+    def evaluate(self, X, Y, verbose=1):
+        return self.model.evaluate(X, Y, verbose=verbose)
 
 def cv(get_model, X, Y, test,K=10, geo_mean=True):
     kf = KFold(len(X), n_folds=K, shuffle=False)
 
     results = []
+    total_loss=[]
     for i, (train_index, valid_index) in enumerate(kf):
         print('第{}次训练...'.format(i))
         trainset = X[train_index]
         label_train = Y[train_index]
 
+        validset= X[valid_index]
+        label_valid = Y[valid_index]
+
         model=get_model()
         model.fit(trainset, label_train)
+
+        loss = model.evaluate(validset, label_valid)  #验证集上的loss、acc
+
+        print("valid set score:", loss)
+        total_loss.append(loss)
+
         results.append(model.predict(test))
+
+    print('total loss',np.array(total_loss).mean(axis=0))
 
     if geo_mean == True:
         test_predicts = np.ones(results[0].shape)
@@ -116,20 +130,21 @@ def cv(get_model, X, Y, test,K=10, geo_mean=True):
             test_predicts += fold_predict
         test_predicts /= len(results)
 
+
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
     sample_submission = input.read_dataset('sample_submission.csv')
     sample_submission[list_classes] = test_predicts
     sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
-def train(maxlen=100):
+def train(batch_size=256,maxlen=100):
 
 
     train,test=input.read_dataset('clean_train.csv'),input.read_dataset('clean_test.csv')
 
     labels=input.read_dataset('labels.csv').values
-    train, test,embedding_matrix=prepocess.comment_to_seq(train,test,maxlen=maxlen,wordvecfile='glove42')
+    train, test,embedding_matrix=prepocess.comment_to_seq(train,test,maxlen=maxlen,wordvecfile='crawl')
 
-    getmodel=lambda:dnn(256,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
+    getmodel=lambda:dnn(batch_size,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
     # model=getmodel()
     # model.fit(train,labels)

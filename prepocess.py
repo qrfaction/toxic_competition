@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
-# 复制所有代码，精简到最简版
-##### 导入包 #####
-#basics
-import pandas as pd 
+import pandas as pd
 import numpy as np
 import time
 import warnings
-import seaborn as sns
 import string
-import re    #for regex
+import re
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tokenize import TweetTokenizer
@@ -17,16 +12,18 @@ from keras.preprocessing.sequence import pad_sequences
 from tqdm import tqdm
 from Ref_Data import APPO
 import input
-#settings
+import nltk
 
-sns.set_style("dark")
+
 eng_stopwords = set(stopwords.words("english"))
 warnings.filterwarnings("ignore")
 
 lem = WordNetLemmatizer()
 tokenizer = TweetTokenizer()
 PATH='data/'
-##### 特征工程 #####
+
+UNKONW='_UNK_'
+
 def makeIndirectFeatures(train, df):
     ## Indirect features——共11个特征
     #9个：单词句子数、数、非重复单词数、字母数、标点数、大写字母的单词/字母数、标题数、停顿词数、单词平均长度
@@ -109,7 +106,7 @@ def clean(comment):
 
 def clean_dataset(filename):
     dataset=input.read_dataset(filename,["id","comment_text"])
-    dataset.fillna('UNKNOW',inplace=True)
+    dataset.fillna(UNKONW,inplace=True)
     dataset["comment_text"]=dataset["comment_text"].apply(clean)
     dataset.to_csv(PATH+'clean_'+filename,index=False)
     print(dataset)
@@ -160,27 +157,28 @@ def getTfidfVector(clean_corpus):
 
 def comment_to_seq(train,test,maxlen=100,dimension=300,wordvecfile='glove42'):
     from keras.preprocessing.text import Tokenizer
-    train.fillna(' ',inplace=True)
-    test.fillna(' ',inplace=True)
+    train.fillna(UNKONW,inplace=True)
+    test.fillna(UNKONW,inplace=True)
     text=train['comment_text'].values.tolist()+test['comment_text'].values.tolist()
+
+    embeddings_index = input.read_wordvec(wordvecfile)
+
     tokenizer = Tokenizer()
     tokenizer.fit_on_texts(text)
-
     sequences = tokenizer.texts_to_sequences(text)
-    sequences = pad_sequences(sequences,maxlen=maxlen,truncating='post')
-    trainseq=sequences[:len(train)]
-    testseq=sequences[len(train):]
+    sequences = pad_sequences(sequences, maxlen=maxlen, truncating='post')
+    trainseq = sequences[:len(train)]
+    testseq = sequences[len(train):]
     assert len(trainseq) == len(train)
     assert len(testseq) == len(test)
 
-    word_index=tokenizer.word_index
+    word_index = tokenizer.word_index
 
-    num_words =len(word_index)
-    # embedding_matrix = np.random.normal(loc=0.0, scale=0.33,size=(num_words+1,dimension))
-    embedding_matrix = np.zeros((num_words+1,dimension))
-    embedding_matrix[0]= 0
-    embeddings_index = input.read_wordvec(wordvecfile)
-
+    #  +1 是停止符
+    num_words =len(word_index)+1
+    # 未知单词用0  停止符用-1
+    embedding_matrix = np.zeros((num_words,dimension))
+    embeddings_index[0]=-1
     noword=0
     for word, i in tqdm(word_index.items()):
         embedding_vector = embeddings_index.get(word)
@@ -188,7 +186,7 @@ def comment_to_seq(train,test,maxlen=100,dimension=300,wordvecfile='glove42'):
             noword+=1
         else:
             embedding_matrix[i] = embedding_vector
-    print(noword)
+    print('miss:',noword)
     return trainseq,testseq,embedding_matrix
 
 def splitTarget(filename):

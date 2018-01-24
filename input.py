@@ -2,23 +2,24 @@ import numpy as np
 from tqdm import tqdm
 import multiprocessing as mlp
 import pandas as pd
+
 PATH='data/'
 wordvec={
     'glove42':PATH+'glove.42B.300d.txt',
     'glove840':PATH+'glove.840B.300d.txt',
+    'crawl':PATH+'crawl-300d-2M.vec',
 }
 
 def work(wordmat):
     result={}
     for line in tqdm(wordmat):
-        if line is not '':
-            wvec = line.split(' ')
-            result[wvec[0]] = np.asarray(wvec[1:], dtype='float32')
+        wvec = line.strip(' ').split(' ')
+        result[wvec[0]] = np.asarray(wvec[1:], dtype='float32')
     return result
 
 def read_wordvec(filename):
     with open(wordvec[filename]) as f:
-        wordmat=f.read().split('\n')
+        wordmat=f.read().strip('\n').split('\n')
     results = []
     pool = mlp.Pool(mlp.cpu_count())
 
@@ -32,7 +33,7 @@ def read_wordvec(filename):
     word_dict={}
     for result in results:
         word_dict.update(result.get())
-    print(len(word_dict))
+    print('num of words:',len(word_dict))
     return word_dict
 
 def read_dataset(filename,cols=None):
