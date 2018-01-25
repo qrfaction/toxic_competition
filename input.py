@@ -2,6 +2,8 @@ import numpy as np
 from tqdm import tqdm
 import multiprocessing as mlp
 import pandas as pd
+import prepocess
+
 
 PATH='data/'
 wordvec={
@@ -9,6 +11,43 @@ wordvec={
     'glove840':PATH+'glove.840B.300d.txt',
     'crawl':PATH+'crawl-300d-2M.vec',
 }
+
+def get_train_test(maxlen,addData=False):
+    seqtrain, seqtest = read_dataset('clean_train.csv'), read_dataset('clean_test.csv')
+
+
+
+    labels =read_dataset('labels.csv').values
+
+
+    if addData==True:
+        fr,es,de = read_dataset('clean_train_fr.csv'),\
+                   read_dataset('clean_train_es.csv'),\
+                   read_dataset('clean_train_de.csv'),
+        seqtrain = seqtrain.append(fr)
+        seqtrain = seqtrain.append(es)
+        seqtrain = seqtrain.append(de)
+        labels = np.concatenate([labels] * 4 ,axis=0)
+
+    seqtrain, seqtest, embedding_matrix = \
+        prepocess.comment_to_seq(seqtrain, seqtest, maxlen=maxlen, wordvecfile='crawl')
+
+    # tfidf_train,tfidf_test=read_dataset('tfidf_train.csv',header=None).values,\
+    #                        read_dataset('tfidf_test.csv',header=None).values
+
+    X={
+        'comment':seqtrain,
+        # 'tfidf1':tfidf_train[:,:128],
+        # 'tfidf2': tfidf_train[:,128:256],
+        # 'tfidf3': tfidf_train[:,256:],
+    }
+    testX={
+        'comment':seqtest,
+        # 'tfidf1':tfidf_test[:,:128],
+        # 'tfidf2': tfidf_test[:,128:256],
+        # 'tfidf3': tfidf_test[:,256:],
+    }
+    return X,testX,labels,embedding_matrix
 
 def work(wordmat):
     result={}
@@ -36,10 +75,10 @@ def read_wordvec(filename):
     print('num of words:',len(word_dict))
     return word_dict
 
-def read_dataset(filename,cols=None):
+def read_dataset(filename,cols=None,header='infer'):
     if cols is None:
-        return pd.read_csv(PATH+filename)
-    return pd.read_csv(PATH+filename,usecols=cols)
+        return pd.read_csv(PATH+filename,header=header)
+    return pd.read_csv(PATH+filename,usecols=cols,header=header)
 
 def deal_index(filename):
     '处理 to_csv 忘加index=False的问题'

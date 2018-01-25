@@ -43,7 +43,7 @@ def makeIndirectFeatures(train, df):
     df['punct_percent']=df['count_punctuations']*100/df['count_word']
     
     #serperate train and test features
-    train_feats=df.iloc[0:len(train),]
+    train_feats=df.iloc[0:len(train)]
 #    test_feats=df.iloc[len(train):,]
     #join the tags
     train_tags=train.iloc[:,2:]
@@ -194,7 +194,13 @@ def splitTarget(filename):
     labels=input.read_dataset(filename,list_classes)
     labels.to_csv(PATH+'labels.csv',index=False)
 
-
-if __name__ == "__main__":
+def pipeline():
     clean_dataset('train.csv')
     clean_dataset('test.csv')
+    clean_dataset('train_fr.csv')
+    clean_dataset('train_es.csv')
+    clean_dataset('train_de.csv')
+
+
+if __name__ == "__main__":
+    pipeline()

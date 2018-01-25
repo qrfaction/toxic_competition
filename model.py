@@ -1,7 +1,7 @@
 from keras.layers import Dense, Input
 from keras.layers import Conv1D, Embedding
 from keras.models import Model
-from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout,GRU,add
+from keras.layers import Bidirectional,  Dropout,GRU,add,Reshape,Multiply,BatchNormalization
 from keras.layers.pooling import MaxPool1D
 from keras.optimizers import RMSprop
 import prepocess
@@ -11,6 +11,10 @@ from keras.layers.merge import concatenate
 from sklearn.cross_validation import KFold
 import numpy as np
 import pandas as pd
+
+TFIDF_DIM = 128
+
+
 
 def CnnBlock(name,input_layer,filters):
     def Res_Inception(input_layer, filters, activate=True):
@@ -67,23 +71,64 @@ class dnn:
     def __init__(self,batch_size,num_words,
                  EMBEDDING_DIM, embedding_matrix, maxlen, trainable=False):
 
-        sequence_input = Input(shape=(maxlen,), dtype='int32')
-        embedding_layer = Embedding(num_words,
-                                    EMBEDDING_DIM,
-                                    weights=[embedding_matrix],
-                                    input_length=maxlen,
-                                    trainable=trainable)(sequence_input)
-        x = Bidirectional(GRU(64, return_sequences=True))(embedding_layer)
-        x = Dropout(0.3)(x)
-        x = Bidirectional(GRU(64, return_sequences=False))(x)
-        x = Dense(32, activation="relu")(x)
+        self.maxlen=maxlen
+        self.trainable=trainable
+        self.EMBEDDING_DIM=EMBEDDING_DIM
+        self.embedding_matrix=embedding_matrix
+        self.num_words=num_words
+
+        # tfidf, Input1, Input2, Input3 = self.__tfidfBlock()
+        x, sequence_input = self.__commentBlock()
+
+        # combine = concatenate([x,tfidf])
+
         output = Dense(6, activation="sigmoid")(x)
-        self.model = Model(inputs=[sequence_input], outputs=[output])
+        X=[sequence_input
+            # ,Input1,Input2,Input3
+           ]
+
+        self.model = Model(inputs=X, outputs=[output])
+
         optimizer = RMSprop(clipvalue=1, clipnorm=1)
         self.model.compile(loss='binary_crossentropy',
                       optimizer=optimizer,
                       metrics=['accuracy'])
         self.batch_size=batch_size
+
+    def __tfidfBlock(self):
+        Input1 = Input(shape=(TFIDF_DIM,), name='tfidf1')
+        Input2 = Input(shape=(TFIDF_DIM,), name='tfidf2')
+        Input3 = Input(shape=(TFIDF_DIM,), name='tfidf3')
+
+        tfidf1 = Dense(32, activation='relu')(Input1)
+
+        tfidf2 = Dense(32, activation='relu')(Input2)
+
+        tfidf3 = Dense(32, activation='relu')(Input3)
+
+        tfidf = add([tfidf1,tfidf2,tfidf3])
+
+        return tfidf,Input1,Input2,Input3
+
+    def __commentBlock(self):
+        sequence_input = Input(shape=(self.maxlen,), dtype='int32', name='comment')
+        embedding_layer = Embedding(self.num_words,
+                                    self.EMBEDDING_DIM,
+                                    weights=[self.embedding_matrix],
+                                    input_length=self.maxlen,
+                                    trainable=self.trainable)(sequence_input)
+        embedding_layer = Dropout(0.3)(embedding_layer)
+
+        layer1 = Conv1D(256,kernel_size=1,padding='same',activation='relu')(embedding_layer)
+        attention = Bidirectional(GRU(256,return_sequences=True,activation='sigmoid'),merge_mode='ave')(layer1)
+        layer1 = Multiply()([layer1,attention])
+
+
+        layer2 = Bidirectional(GRU(128,return_sequences=True),merge_mode='sum')(layer1)
+        seqlayer = Bidirectional(GRU(64, return_sequences=False),merge_mode='sum')(layer2)
+
+        return seqlayer,sequence_input
+
 
     def fit(self,X,Y,verbose=1):
         self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,shuffle=False)
@@ -94,22 +139,30 @@ class dnn:
     def evaluate(self, X, Y, verbose=1):
         return self.model.evaluate(X, Y, verbose=verbose)
 
-def cv(get_model, X, Y, test,K=10, geo_mean=True):
-    kf = KFold(len(X), n_folds=K, shuffle=False)
+def cv(get_model, X, Y, test,K=4, geo_mean=True):
+
+    def splitdata(index_train,index_valid,dataset):
+        train_x={}
+        valid_x={}
+        for key in dataset.keys():
+            train_x[key] = dataset[key][index_train]
+            valid_x[key] = dataset[key][index_valid]
+
+        return train_x,valid_x
+
+
+    kf = KFold(len(Y), n_folds=K, shuffle=False)
 
     results = []
     total_loss=[]
     for i, (train_index, valid_index) in enumerate(kf):
         print('第{}次训练...'.format(i))
-        trainset = X[train_index]
+        trainset , validset = splitdata( train_index,valid_index ,X)
         label_train = Y[train_index]
-
-        validset= X[valid_index]
         label_valid = Y[valid_index]
 
         model=get_model()
         model.fit(trainset, label_train)
-
         loss = model.evaluate(validset, label_valid)  #验证集上的loss、acc
 
         print("valid set score:", loss)
@@ -138,21 +191,17 @@ def cv(get_model, X, Y, test,K=10, geo_mean=True):
 
 def train(batch_size=256,maxlen=100):
 
-
-    train,test=input.read_dataset('clean_train.csv'),input.read_dataset('clean_test.csv')
-
-    labels=input.read_dataset('labels.csv').values
-    train, test,embedding_matrix=prepocess.comment_to_seq(train,test,maxlen=maxlen,wordvecfile='crawl')
+    train, test, labels ,embedding_matrix = input.get_train_test(maxlen)
 
     getmodel=lambda:dnn(batch_size,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
-    # model=getmodel()
-    # model.fit(train,labels)
-    # list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-    # sample_submission = input.read_dataset('sample_submission.csv')
-    # sample_submission[list_classes] = model.predict(test)
-    # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
-    cv(getmodel,train,labels,test)
+    model=getmodel()
+    model.fit(train,labels)
+    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    sample_submission = input.read_dataset('sample_submission.csv')
+    sample_submission[list_classes] = model.predict(test)
+    sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
+    # cv(getmodel,train,labels,test)
 
 
 if __name__ == "__main__":
