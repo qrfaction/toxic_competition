@@ -1,9 +1,7 @@
 import numpy as np
 from tqdm import tqdm
-import multiprocessing as mlp
 import pandas as pd
-import prepocess
-
+import embedding
 
 PATH='data/'
 wordvec={
@@ -11,14 +9,45 @@ wordvec={
     'glove840':PATH+'glove.840B.300d.txt',
     'crawl':PATH+'crawl-300d-2M.vec',
 }
+UNKONW='unknow'
 
-def get_train_test(maxlen,addData=False):
-    seqtrain, seqtest = read_dataset('clean_train.csv'), read_dataset('clean_test.csv')
+usecols = [
+    ##count feature
+    'total_length',
+    'capitals',
+    'caps_vs_length',
+    'num_exclamation_marks',
+    'num_question_marks',
+    'num_punctuation',
+    'num_symbols',
+    'num_words',
+    'num_unique_words',
+    'words_vs_unique',
+    'num_smilies',
+    'count_word',
+    'count_unique_word',
+    "count_punctuations",
+    "count_stopwords",
+    "mean_word_len",
+    'word_unique_percent',
+    'punct_percent',
+
+    ## leaky feature
+    # 'ip',
+    # 'count_ip',
+    # 'link',
+    # 'count_links',
+    # 'article_id',
+    # 'article_id_flag',
+    # 'username',
+    # 'count_usernames',
+]
 
 
+def get_train_test(maxlen,addData=False,wordvecfile='crawl',dimension=300):
+    train, test = read_dataset('clean_train.csv',cols=usecols), read_dataset('clean_test.csv',cols=usecols)
 
     labels =read_dataset('labels.csv').values
-
 
     if addData==True:
         fr,es,de = read_dataset('clean_train_fr.csv'),\
@@ -29,20 +58,26 @@ def get_train_test(maxlen,addData=False):
         seqtrain = seqtrain.append(de)
         labels = np.concatenate([labels] * 4 ,axis=0)
 
-    seqtrain, seqtest, embedding_matrix = \
-        prepocess.comment_to_seq(seqtrain, seqtest, maxlen=maxlen, wordvecfile='crawl')
+    train['comment_text'].fillna(UNKONW, inplace=True)
+    test['comment_text'].fillna(UNKONW, inplace=True)
+    text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
 
-    # tfidf_train,tfidf_test=read_dataset('tfidf_train.csv',header=None).values,\
-    #                        read_dataset('tfidf_test.csv',header=None).values
+    sequences, embedding_matrix = embedding.get_embedding_matrix(text, maxlen, dimension, wordvecfile)
+    trainseq = sequences[:len(train)]
+    testseq = sequences[len(train):]
+    assert len(trainseq) == len(train)
+    assert len(testseq) == len(test)
 
     X={
-        'comment':seqtrain,
+        'comment':trainseq,
+        'countFeature':train[usecols],
         # 'tfidf1':tfidf_train[:,:128],
         # 'tfidf2': tfidf_train[:,128:256],
         # 'tfidf3': tfidf_train[:,256:],
     }
     testX={
-        'comment':seqtest,
+        'comment':testseq,
+        'countFeature':test[usecols],
         # 'tfidf1':tfidf_test[:,:128],
         # 'tfidf2': tfidf_test[:,128:256],
         # 'tfidf3': tfidf_test[:,256:],
@@ -57,6 +92,9 @@ def work(wordmat):
     return result
 
 def read_wordvec(filename):
+
+    import multiprocessing as mlp
+
     with open(wordvec[filename]) as f:
         wordmat=f.read().strip('\n').split('\n')
     results = []

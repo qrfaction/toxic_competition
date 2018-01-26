@@ -120,7 +120,7 @@ class dnn:
         embedding_layer = Dropout(0.3)(embedding_layer)
 
         layer1 = Conv1D(256,kernel_size=1,padding='same',activation='relu')(embedding_layer)
-        attention = Bidirectional(GRU(256,return_sequences=True,activation='sigmoid'),merge_mode='ave')(layer1)
+        attention = Bidirectional(GRU(256,return_sequences=True,activation='sigmoid'),merge_mode='sum')(layer1)
         layer1 = Multiply()([layer1,attention])
 
 
@@ -139,7 +139,7 @@ class dnn:
     def evaluate(self, X, Y, verbose=1):
         return self.model.evaluate(X, Y, verbose=verbose)
 
-def cv(get_model, X, Y, test,K=4, geo_mean=True):
+def cv(get_model, X, Y, test,K=10, geo_mean=False):
 
     def splitdata(index_train,index_valid,dataset):
         train_x={}
@@ -195,13 +195,13 @@ def train(batch_size=256,maxlen=100):
 
     getmodel=lambda:dnn(batch_size,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
-    model=getmodel()
-    model.fit(train,labels)
-    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-    sample_submission = input.read_dataset('sample_submission.csv')
-    sample_submission[list_classes] = model.predict(test)
-    sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
-    # cv(getmodel,train,labels,test)
+    # model=getmodel()
+    # model.fit(train,labels)
+    # list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    # sample_submission = input.read_dataset('sample_submission.csv')
+    # sample_submission[list_classes] = model.predict(test)
+    # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
+    cv(getmodel,train,labels,test)
 
 
 if __name__ == "__main__":
