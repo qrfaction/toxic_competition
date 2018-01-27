@@ -1,12 +1,12 @@
-from nltk.tokenize import TweetTokenizer
+from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 import numpy as np
 import multiprocessing as mlp
 import input
 
+
 def tokenize_worker(sentences):
-    tokenizer = TweetTokenizer()
-    sentences = [tokenizer.tokenize(seq) for seq in tqdm(sentences)]
+    sentences = [ word_tokenize(seq) for seq in tqdm(sentences)]
     return sentences
 
 def tokenize_sentences(sentences):
@@ -50,7 +50,7 @@ def get_embedding_matrix(sentences,maxlen,dimension,wordvecfile):
     print('tokenize word')
     sentences , word_index = tokenize_sentences(sentences)
     sentences = pad_sequences(sentences, maxlen=maxlen, truncating='post')
-
+    sentences = np.array(sentences)
 
     embeddings_index = input.read_wordvec(wordvecfile)
 
@@ -69,3 +69,4 @@ def get_embedding_matrix(sentences,maxlen,dimension,wordvecfile):
     print('miss:', noword)
 
     return sentences,embedding_matrix
+

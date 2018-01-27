@@ -104,6 +104,7 @@ def cleanComment(comments):
     clean_comments = []
 
     for comment in tqdm(comments):
+
         comment = comment.lower()
         # 去除IP
         comment = re.sub(patternIP, "", comment)
@@ -120,17 +121,22 @@ def cleanComment(comments):
         # 省略词替换（参考APPO、nltk）：you're -> you are
         words = [APPO[word] if word in APPO else word for word in words]
         words = [lem.lemmatize(word, "v") for word in words]
-        words = [w for w in words if not w in eng_stopwords]
+        words = [w for w in words if w not in eng_stopwords]
         comment = " ".join(words)
+        comment = comment.lower()
+
+        comment = re.sub('[\'\"=]+',' ',comment)
+        comment = re.sub('\s+',' ',comment)
         # 纠正拼写错误
-        for word,pos in tknzr(comment):
-            if w_dict.check(word) == False:
-                try:
-                    comment = comment[:pos] + \
-                              w_dict.suggest(word)[0] + \
-                              comment[pos+len(word):]
-                except IndexError:
-                    continue
+        # for word,pos in tknzr(comment):
+        #     if w_dict.check(word) == False:
+        #         try:
+        #             comment = comment[:pos] + \
+        #                       w_dict.suggest(word)[0] + \
+        #                       comment[pos+len(word):]
+        #             print(word,w_dict.suggest(word)[0])
+        #         except IndexError:
+        #             continue
         clean_comments.append(comment)
     return clean_comments
 

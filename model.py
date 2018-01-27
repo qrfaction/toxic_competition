@@ -10,6 +10,7 @@ from keras.layers.advanced_activations import PReLU
 from keras.layers.merge import concatenate
 from sklearn.cross_validation import KFold
 import numpy as np
+from keras import regularizers
 import pandas as pd
 
 TFIDF_DIM = 128
@@ -80,10 +81,13 @@ class dnn:
         # tfidf, Input1, Input2, Input3 = self.__tfidfBlock()
         x, sequence_input = self.__commentBlock()
 
-        # combine = concatenate([x,tfidf])
+        cF,cF_x  = self.__CountFeature()
 
-        output = Dense(6, activation="sigmoid")(x)
-        X=[sequence_input
+        combine = concatenate([x,cF])
+
+        output = Dense(6, activation="sigmoid")(combine)
+        X=[sequence_input,
+           cF_x
             # ,Input1,Input2,Input3
            ]
 
@@ -129,6 +133,12 @@ class dnn:
 
         return seqlayer,sequence_input
 
+    def __CountFeature(self):
+        x = Input(shape=(18,),name='countFeature')
+
+        fc = Dense(64,activation='relu',kernel_regularizer=regularizers.l1(0.01))(x)
+
+        return fc,x
 
     def fit(self,X,Y,verbose=1):
         self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,shuffle=False)
@@ -139,17 +149,16 @@ class dnn:
     def evaluate(self, X, Y, verbose=1):
         return self.model.evaluate(X, Y, verbose=verbose)
 
+def splitdata(index_train,index_valid,dataset):
+    train_x={}
+    valid_x={}
+    for key in dataset.keys():
+        train_x[key] = dataset[key][index_train]
+        valid_x[key] = dataset[key][index_valid]
+
+    return train_x,valid_x
+
 def cv(get_model, X, Y, test,K=10, geo_mean=False):
-
-    def splitdata(index_train,index_valid,dataset):
-        train_x={}
-        valid_x={}
-        for key in dataset.keys():
-            train_x[key] = dataset[key][index_train]
-            valid_x[key] = dataset[key][index_valid]
-
-        return train_x,valid_x
-
 
     kf = KFold(len(Y), n_folds=K, shuffle=False)
 
@@ -189,19 +198,52 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False):
     sample_submission[list_classes] = test_predicts
     sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
+
+def train_earlystop(getmodel, dataset, labels, test):
+    kf = KFold(len(labels), n_folds=6, shuffle=False)
+    train_index, valid_index = list(kf)[3]
+    label_train = labels[train_index]
+    label_valid = labels[valid_index]
+    x_train, x_valid = splitdata(train_index, valid_index, dataset)
+    model = getmodel()
+
+    trainsplit = [
+                    np.array(range(0,100000)),
+                    np.array(range(100000,110000)),
+                    np.array(range(110000,120000)),
+                    np.array(range(120000,len(x_train))),
+                  ]
+    minloss=1000
+    for index in trainsplit:
+        x = {}
+        for key in x_train.keys():
+            x[key] = x_train[key][index]
+        y = label_train[index]
+        model.fit(x,y)
+
+        loss = model.evaluate(x_valid, label_valid)  # 验证集上的loss、acc
+        print("valid set score:", loss)
+        if loss[0] < minloss:
+            minloss  = loss[0]
+        else :
+            break
+
+
+    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    sample_submission = input.read_dataset('sample_submission.csv')
+    sample_submission[list_classes] = model.predict(test)
+    sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
+
 def train(batch_size=256,maxlen=100):
 
-    train, test, labels ,embedding_matrix = input.get_train_test(maxlen)
+    trainset, testset, labels ,embedding_matrix = input.get_train_test(maxlen)
 
     getmodel=lambda:dnn(batch_size,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
-    # model=getmodel()
-    # model.fit(train,labels)
-    # list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-    # sample_submission = input.read_dataset('sample_submission.csv')
-    # sample_submission[list_classes] = model.predict(test)
-    # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
-    cv(getmodel,train,labels,test)
+    # train_earlystop(getmodel,trainset,labels,testset)
+
+
+    cv(getmodel,trainset,labels,testset)
 
 
 if __name__ == "__main__":

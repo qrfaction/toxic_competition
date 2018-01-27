@@ -12,6 +12,7 @@ wordvec={
 UNKONW='unknow'
 
 usecols = [
+    'comment_text',
     ##count feature
     'total_length',
     'capitals',
@@ -68,16 +69,23 @@ def get_train_test(maxlen,addData=False,wordvecfile='crawl',dimension=300):
     assert len(trainseq) == len(train)
     assert len(testseq) == len(test)
 
+    countF = usecols[1:]
+
+    dataset = train.append(test)
+    for col in countF:
+        train[col] = (train[col] - dataset[col].mean()) / dataset[col].std()
+        test[col] = (test[col] - dataset[col].mean()) / dataset[col].std()
+
     X={
         'comment':trainseq,
-        'countFeature':train[usecols],
+        'countFeature':train[countF].values,
         # 'tfidf1':tfidf_train[:,:128],
         # 'tfidf2': tfidf_train[:,128:256],
         # 'tfidf3': tfidf_train[:,256:],
     }
     testX={
         'comment':testseq,
-        'countFeature':test[usecols],
+        'countFeature':test[countF].values,
         # 'tfidf1':tfidf_test[:,:128],
         # 'tfidf2': tfidf_test[:,128:256],
         # 'tfidf3': tfidf_test[:,256:],
