@@ -9,15 +9,15 @@ from Ref_Data import APPO
 import input
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.tokenize import TweetTokenizer
+from nltk.tokenize import word_tokenize
 
 warnings.filterwarnings("ignore")
 PATH='data/'
-UNKONW='unknow'
+UNKONW='.'
 
 eng_stopwords = set(stopwords.words("english"))
 lem = WordNetLemmatizer()
-tokenizer = TweetTokenizer()
+
 
 def CreateFeature(dataset):
 
@@ -114,9 +114,9 @@ def cleanComment(comments):
         comment = re.sub(patternLink, " ", comment)
         # 去除非ascii字符
         comment = re.sub("[^\x00-\x7F]+", "", comment)
-
+        comment = re.sub("\\.+", ' . ', comment)
         # 分词
-        words = tokenizer.tokenize(comment)
+        words = word_tokenize(comment)
 
         # 省略词替换（参考APPO、nltk）：you're -> you are
         words = [APPO[word] if word in APPO else word for word in words]
@@ -126,6 +126,7 @@ def cleanComment(comments):
         comment = comment.lower()
 
         comment = re.sub('[\'\"=]+',' ',comment)
+        comment = re.sub('\p{P}+',' . ',comment)
         comment = re.sub('\s+',' ',comment)
         # 纠正拼写错误
         # for word,pos in tknzr(comment):

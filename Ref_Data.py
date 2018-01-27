@@ -404,5 +404,96 @@ APPO = {
 "wasn't": "was not",
 "we'll":" will",
 "tryin'":"trying",
+
+
+'donkeysex':'donkey sex',
 'mothjer':'mother',
+'youfuck':'you fuck',
+'fucksex':'fuck sex',
+'helloz':'hello',
+'vandalizer':'vandalize',
+'bullshit.bullshit':'bullshit bullshit',
+'911you':'911 you',
+'deneid':'deny',
+'motherfuckerdie':'motherfucker die',
+'f-ucking':'fuck',
+'fvckers':'fucker',
+'madyou':'mad you',
+'turkeyfuck':'turkey fuck',
+'helloe':'hello',
+'bitchbitch':'bitch',
+'securityfuck':'security fuck',
+'youbollocks':'you bollock',
+'concernthanks':'concern thank',
+'ancestryfuck-off-jewish':'ancestry fuck off jewish',
+'hahahahello':'hello',
+'centraliststupid':'centralist stupid',
+'bitchmattythewhite':'bitch marry the white',
+'haahhahahah':'haha',
+'penispenis':'penis',
+'nigggers':'nigger',
+'commonname':'common name',
+'gentlty':'gently',
+'pneis':'penis',
+'pennnis':'penis',
+'therefuck':'there fuck',
+'itsuck':'it suck',
+'gayfrozen':'gay frozen',
+'c0pyr1ght':'copyright',
+'`':' ',
+'offfuck':'fuck off',
+'vaginapenis':'vagina penis',
+'go0verment':'goverment',
+'gurdyhurdy':'hurdy-gurdy',
+'criminalwar':'criminal war',
+'obma':'obama',
+'radicalnigger':'radical nigger',
+'#f5fffa':' ',
+'_':' ',
+'niggors':'nigger',
+'bitchbot':'bitch bot',
+'niggerjew':'nigger jewish',
+'philippineslong':'philippines',
+'m1ckhacked':'mick hack',
+'drogon':'dragon',  # drogon是龙的一种
+'ballsballs':'balls balls',
+'hornyhorny':'horny horny',
+'cockuser':'cock user',
+'d0wn':'down',
+'5hut':'shut',
+'5h1t':'shit',
+'5uck5':'suck',
+'sidaway':'sideway',
+'yourselfgo':'go fuck yourself',
+'gayyour':'gay your',
+'___':' ',
+'__':' ',
+'suckernguyen':'sucker',
+'pissfuck':'piss fuck',
+'fuckingabf':'fuck',
+'shitonly':'shit only',
+'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzdick':'dick',
+'sockpuppeteer':'sock puppe teer',
+'nonsesnse':'nonsense',
+'porngay':'porn gay',
+'usertalk':'user talk',
+'vagpenis':'vagina penis',
+'dickbutt':'dick butt',
+'freakyou':'freak you',
+'sucksgeorge':'suck george',
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

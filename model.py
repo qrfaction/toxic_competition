@@ -81,19 +81,19 @@ class dnn:
         # tfidf, Input1, Input2, Input3 = self.__tfidfBlock()
         x, sequence_input = self.__commentBlock()
 
-        cF,cF_x  = self.__CountFeature()
+        # cF,cF_x  = self.__CountFeature()
 
-        combine = concatenate([x,cF])
+        # combine = concatenate([x,cF])
 
-        output = Dense(6, activation="sigmoid")(combine)
-        X=[sequence_input,
-           cF_x
+        output = Dense(6, activation="sigmoid")(x)
+        X = [
+                sequence_input,
             # ,Input1,Input2,Input3
-           ]
+            ]
 
         self.model = Model(inputs=X, outputs=[output])
 
-        optimizer = RMSprop(clipvalue=1, clipnorm=1)
+        optimizer = RMSprop(clipvalue=1,clipnorm=1)
         self.model.compile(loss='binary_crossentropy',
                       optimizer=optimizer,
                       metrics=['accuracy'])
@@ -123,12 +123,12 @@ class dnn:
                                     trainable=self.trainable)(sequence_input)
         embedding_layer = Dropout(0.3)(embedding_layer)
 
-        layer1 = Conv1D(256,kernel_size=1,padding='same',activation='relu')(embedding_layer)
-        attention = Bidirectional(GRU(256,return_sequences=True,activation='sigmoid'),merge_mode='sum')(layer1)
-        layer1 = Multiply()([layer1,attention])
+        # layer1 = Conv1D(256,kernel_size=1,padding='same',activation='relu')(embedding_layer)
+        # attention = Bidirectional(GRU(256,return_sequences=True,activation='sigmoid'),merge_mode='sum')(layer1)
+        # layer1 = Multiply()([layer1,attention])
 
 
-        layer2 = Bidirectional(GRU(128,return_sequences=True),merge_mode='sum')(layer1)
+        layer2 = Bidirectional(GRU(128,return_sequences=True),merge_mode='sum')(embedding_layer)
         seqlayer = Bidirectional(GRU(64, return_sequences=False),merge_mode='sum')(layer2)
 
         return seqlayer,sequence_input
@@ -234,7 +234,7 @@ def train_earlystop(getmodel, dataset, labels, test):
     sample_submission[list_classes] = model.predict(test)
     sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
-def train(batch_size=256,maxlen=100):
+def train(batch_size=256,maxlen=80):
 
     trainset, testset, labels ,embedding_matrix = input.get_train_test(maxlen)
 
@@ -242,8 +242,16 @@ def train(batch_size=256,maxlen=100):
 
     # train_earlystop(getmodel,trainset,labels,testset)
 
+    model = getmodel()
+    model.fit(trainset,labels)
 
-    cv(getmodel,trainset,labels,testset)
+    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    sample_submission = input.read_dataset('sample_submission.csv')
+    sample_submission[list_classes] = model.predict(testset)
+    sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
+
+
+    # cv(getmodel,trainset,labels,testset)
 
 
 if __name__ == "__main__":

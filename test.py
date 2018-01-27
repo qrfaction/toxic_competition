@@ -5,7 +5,8 @@ PATH='data/'
 def post_deal():
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
     a=pd.read_csv('baseline.csv.gz')
-    a[list_classes]=np.exp(np.log(a[list_classes]) -0.5)
+    # a[list_classes]=np.exp(np.log(a[list_classes]) -0.5)
+    a[list_classes]=a[list_classes]**1.3
 
     a.to_csv("test.csv.gz", index=False, compression='gzip')
 
