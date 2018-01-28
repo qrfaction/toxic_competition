@@ -214,19 +214,13 @@ def splitTarget(filename):
     labels.to_csv(PATH+'labels.csv',index=False)
 
 def pipeline():
+    file = ['train.csv','test.csv','train_fr.csv','train_es.csv','train_de.csv']
+    for filename in tqdm(file):
+        dataset = input.read_dataset(filename)
+        dataset.fillna(UNKONW,inplace=True)
+        dataset = CreateFeature(dataset)
+        clean_dataset(dataset,'clean_'+filename)
 
-    train,test = input.read_dataset('train.csv'),input.read_dataset('test.csv')
-    train.fillna(UNKONW,inplace=True)
-    test.fillna(UNKONW,inplace=True)
-    print('create feature ...')
-    train = CreateFeature(train)
-    test = CreateFeature(test)
-    print('clean data ...')
-    clean_dataset(train,'clean_train.csv')
-    clean_dataset(test,'clean_test.csv')
-    # clean_dataset('train_fr.csv')
-    # clean_dataset('train_es.csv')
-    # clean_dataset('train_de.csv')
 
 
 if __name__ == "__main__":

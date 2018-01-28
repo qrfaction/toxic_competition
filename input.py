@@ -46,6 +46,15 @@ usecols = [
 
 
 def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile='crawl',dimension=300):
+    """
+
+    :param maxlen: 句子最大长度
+    :param trainfile: 使用哪个训练集版本(有多种语言翻译后的版本)
+    :param wordvecfile: 使用哪个词向量
+    :param dimension: 词向量维度
+    :return: 清洗完的训练集 ,测试集 ,标签 ,词向量矩阵
+    """
+
     train, test = read_dataset(trainfile,cols=usecols), read_dataset('clean_test.csv',cols=usecols)
 
     labels =read_dataset('labels.csv').values
