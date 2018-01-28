@@ -482,6 +482,15 @@ APPO = {
 'freakyou':'freak you',
 'sucksgeorge':'suck george',
 
+'``':'',
+'|-':'',
+'~~~~':'',
+'|style':'style',
+'*the':'the',
+'*how':'how',
+'f5fffa':'',
+
+
 }
 
 

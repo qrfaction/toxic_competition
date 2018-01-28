@@ -2,7 +2,7 @@ from keras.layers import Dense, Input
 from keras.layers import Conv1D, Embedding
 from keras.models import Model
 from keras.layers import Bidirectional,  Dropout,GRU,add,Reshape,Multiply,BatchNormalization
-from keras.layers.pooling import MaxPool1D
+from keras.layers.pooling import MaxPool1D,GlobalAveragePooling1D
 from keras.optimizers import RMSprop
 import prepocess
 import input
@@ -14,8 +14,6 @@ from keras import regularizers
 import pandas as pd
 
 TFIDF_DIM = 128
-
-
 
 def CnnBlock(name,input_layer,filters):
     def Res_Inception(input_layer, filters, activate=True):
@@ -44,7 +42,7 @@ def CnnBlock(name,input_layer,filters):
             res_util = Ince
         return res_util
 
-    def DenseNet(input_layer, filters):
+    def DenseNet(input_layer, filters ):
         filters = int(filters / 4)
         DBlock1 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(input_layer)
         DBlock1 = concatenate([DBlock1, input_layer])
@@ -59,7 +57,8 @@ def CnnBlock(name,input_layer,filters):
         DBlock3 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(DBlock3)
 
         DBlock4 = Res_Inception(DBlock3, filters, activate=False)
-        DBlock4 = concatenate([DBlock4, DBlock3, DBlock2, DBlock1, input_layer])
+        DBlock4 = concatenate([DBlock4, DBlock3, DBlock2, DBlock1])
+        DBlock4 = add([DBlock4,input_layer])
 
         return DBlock4
 
@@ -79,7 +78,7 @@ class dnn:
         self.num_words=num_words
 
         # tfidf, Input1, Input2, Input3 = self.__tfidfBlock()
-        x, sequence_input = self.__commentBlock()
+        x, sequence_input = self.__commentBlock_v2()
 
         # cF,cF_x  = self.__CountFeature()
 
@@ -93,7 +92,7 @@ class dnn:
 
         self.model = Model(inputs=X, outputs=[output])
 
-        optimizer = RMSprop(clipvalue=1,clipnorm=1,lr=0.002)
+        optimizer = RMSprop(clipvalue=1,lr=0.002)
         self.model.compile(loss='binary_crossentropy',
                       optimizer=optimizer,
                       metrics=['accuracy'])
@@ -114,7 +113,7 @@ class dnn:
 
         return tfidf,Input1,Input2,Input3
 
-    def __commentBlock(self):
+    def __commentBlock_v1(self):
         sequence_input = Input(shape=(self.maxlen,), dtype='int32', name='comment')
         embedding_layer = Embedding(self.num_words,
                                     self.EMBEDDING_DIM,
@@ -132,6 +131,36 @@ class dnn:
         seqlayer = Bidirectional(GRU(64, return_sequences=False),merge_mode='sum')(layer2)
 
         return seqlayer,sequence_input
+
+    def __commentBlock_v2(self):
+
+        sequence_input = Input(shape=(self.maxlen,), dtype='int32', name='comment')
+        embedding_layer = Embedding(self.num_words,
+                                    self.EMBEDDING_DIM,
+                                    weights=[self.embedding_matrix],
+                                    input_length=self.maxlen,
+                                    trainable=self.trainable)(sequence_input)
+        embedding_layer = Dropout(0.3)(embedding_layer)
+
+        layer1 = Conv1D(256,kernel_size=1,padding='same',activation='relu')(embedding_layer)
+
+        branch1 = CnnBlock('DenseNet',layer1,filters=256)
+        branch1 = Conv1D(128, kernel_size=1, padding='same', activation='relu')(branch1)
+        branch1 = MaxPool1D(pool_size=3, strides=2, padding='same')(branch1)
+        branch1 = CnnBlock('DenseNet',layer1,filters=128)(branch1)
+        branch1 = Conv1D(64,kernel_size=1,padding='same',activation='sigmoid')(branch1)
+
+        branch2 = CnnBlock('DenseNet', layer1, filters=256)(embedding_layer)
+        branch2 = Conv1D(128, kernel_size=1, padding='same', activation='relu')(branch2)
+        branch2 = MaxPool1D(pool_size=3, strides=2, padding='same')(branch2)
+        branch2 = CnnBlock('DenseNet', layer1, filters=128)(branch2)
+        branch2 = Conv1D(64,kernel_size=1,padding='same',activation='relu')(branch2)
+
+        combine = Multiply()([branch2,branch1])
+        combine = GlobalAveragePooling1D()(combine)
+
+        return combine
+
 
     def __CountFeature(self):
         x = Input(shape=(18,),name='countFeature')
@@ -158,7 +187,7 @@ def splitdata(index_train,index_valid,dataset):
 
     return train_x,valid_x
 
-def cv(get_model, X, Y, test,K=10, geo_mean=False):
+def cv(get_model, X, Y, test,K=10, geo_mean=False,outputfile='baseline.csv.gz'):
 
     kf = KFold(len(Y), n_folds=K, shuffle=False)
 
@@ -196,7 +225,7 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False):
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
     sample_submission = input.read_dataset('sample_submission.csv')
     sample_submission[list_classes] = test_predicts
-    sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
+    sample_submission.to_csv(outputfile, index=False, compression='gzip')
 
 
 
@@ -204,7 +233,8 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False):
 
 def train(batch_size=256,maxlen=200):
 
-    trainset, testset, labels ,embedding_matrix = input.get_train_test(maxlen)
+    trainset, testset, labels ,embedding_matrix = \
+        input.get_train_test(maxlen,trainfile='clean_train_fr.csv')
 
     getmodel=lambda:dnn(batch_size,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
@@ -219,7 +249,7 @@ def train(batch_size=256,maxlen=200):
     # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
 
-    cv(getmodel,trainset,labels,testset)
+    cv(getmodel,trainset,labels,testset,outputfile='fr.csv.gz')
 
 
 if __name__ == "__main__":
