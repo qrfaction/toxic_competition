@@ -45,15 +45,15 @@ def tokenize_sentences(sentences):
         for sentence in tqdm(sentences):
             seq = []
             for word in sentence:
-                if frequency[word]>3:
+                if frequency[word]>4:
                     if word not in words_dict:
                         words_dict[word] = len(words_dict)+1
                     word_index = words_dict[word]
                     seq.append(word_index)
             seq_list.append(seq)
-            if len(seq_list) not in lenseq:
-                lenseq[len(seq_list)]=0
-            lenseq[len(seq_list)] +=1
+            if len(seq) not in lenseq:
+                lenseq[len(seq)]=0
+            lenseq[len(seq)] +=1
         print(lenseq)
         return seq_list,words_dict,frequency
 

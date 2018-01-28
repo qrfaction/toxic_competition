@@ -45,19 +45,10 @@ usecols = [
 ]
 
 
-def get_train_test(maxlen,addData=False,wordvecfile='crawl',dimension=300):
-    train, test = read_dataset('clean_train.csv',cols=usecols), read_dataset('clean_test.csv',cols=usecols)
+def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile='crawl',dimension=300):
+    train, test = read_dataset(trainfile,cols=usecols), read_dataset('clean_test.csv',cols=usecols)
 
     labels =read_dataset('labels.csv').values
-
-    if addData==True:
-        fr,es,de = read_dataset('clean_train_fr.csv'),\
-                   read_dataset('clean_train_es.csv'),\
-                   read_dataset('clean_train_de.csv'),
-        seqtrain = seqtrain.append(fr)
-        seqtrain = seqtrain.append(es)
-        seqtrain = seqtrain.append(de)
-        labels = np.concatenate([labels] * 4 ,axis=0)
 
     train['comment_text'].fillna(UNKONW, inplace=True)
     test['comment_text'].fillna(UNKONW, inplace=True)

@@ -93,7 +93,7 @@ class dnn:
 
         self.model = Model(inputs=X, outputs=[output])
 
-        optimizer = RMSprop(clipvalue=1,clipnorm=1)
+        optimizer = RMSprop(clipvalue=1,clipnorm=1,lr=0.002)
         self.model.compile(loss='binary_crossentropy',
                       optimizer=optimizer,
                       metrics=['accuracy'])
@@ -199,42 +199,10 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False):
     sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
 
-def train_earlystop(getmodel, dataset, labels, test):
-    kf = KFold(len(labels), n_folds=6, shuffle=False)
-    train_index, valid_index = list(kf)[3]
-    label_train = labels[train_index]
-    label_valid = labels[valid_index]
-    x_train, x_valid = splitdata(train_index, valid_index, dataset)
-    model = getmodel()
-
-    trainsplit = [
-                    np.array(range(0,100000)),
-                    np.array(range(100000,110000)),
-                    np.array(range(110000,120000)),
-                    np.array(range(120000,len(x_train))),
-                  ]
-    minloss=1000
-    for index in trainsplit:
-        x = {}
-        for key in x_train.keys():
-            x[key] = x_train[key][index]
-        y = label_train[index]
-        model.fit(x,y)
-
-        loss = model.evaluate(x_valid, label_valid)  # 验证集上的loss、acc
-        print("valid set score:", loss)
-        if loss[0] < minloss:
-            minloss  = loss[0]
-        else :
-            break
 
 
-    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-    sample_submission = input.read_dataset('sample_submission.csv')
-    sample_submission[list_classes] = model.predict(test)
-    sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
-def train(batch_size=256,maxlen=80):
+def train(batch_size=256,maxlen=200):
 
     trainset, testset, labels ,embedding_matrix = input.get_train_test(maxlen)
 
@@ -243,15 +211,15 @@ def train(batch_size=256,maxlen=80):
     # train_earlystop(getmodel,trainset,labels,testset)
 
     model = getmodel()
-    model.fit(trainset,labels)
+    # model.fit(trainset,labels)
+    #
+    # list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+    # sample_submission = input.read_dataset('sample_submission.csv')
+    # sample_submission[list_classes] = model.predict(testset)
+    # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
-    list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-    sample_submission = input.read_dataset('sample_submission.csv')
-    sample_submission[list_classes] = model.predict(testset)
-    sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
-
-    # cv(getmodel,trainset,labels,testset)
+    cv(getmodel,trainset,labels,testset)
 
 
 if __name__ == "__main__":

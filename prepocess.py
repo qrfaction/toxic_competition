@@ -128,6 +128,7 @@ def cleanComment(comments):
         comment = re.sub('[\'\"=]+',' ',comment)
         comment = re.sub('\p{P}+',' . ',comment)
         comment = re.sub('\s+',' ',comment)
+
         # 纠正拼写错误
         # for word,pos in tknzr(comment):
         #     if w_dict.check(word) == False:
