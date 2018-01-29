@@ -3,7 +3,7 @@ from keras.layers import Conv1D, Embedding
 from keras.models import Model
 from keras.layers import Bidirectional,  Dropout,GRU,add,Reshape,Multiply,BatchNormalization
 from keras.layers.pooling import MaxPool1D,GlobalAveragePooling1D
-from keras.optimizers import RMSprop
+from keras.optimizers import RMSprop,Adam
 import prepocess
 import input
 from keras.layers.advanced_activations import PReLU
@@ -78,7 +78,7 @@ class dnn:
         self.num_words=num_words
 
         # tfidf, Input1, Input2, Input3 = self.__tfidfBlock()
-        x, sequence_input = self.__commentBlock_v2()
+        x, sequence_input = self.__commentBlock_v1()
 
         # cF,cF_x  = self.__CountFeature()
 
@@ -93,6 +93,7 @@ class dnn:
         self.model = Model(inputs=X, outputs=[output])
 
         optimizer = RMSprop(clipvalue=1,lr=0.002)
+        # optimizer = Adam(lr=0.002,clipvalue=1)
         self.model.compile(loss='binary_crossentropy',
                       optimizer=optimizer,
                       metrics=['accuracy'])
@@ -115,21 +116,21 @@ class dnn:
 
     def __commentBlock_v1(self):
         sequence_input = Input(shape=(self.maxlen,), dtype='int32', name='comment')
-        embedding_layer = Embedding(self.num_words,
-                                    self.EMBEDDING_DIM,
-                                    weights=[self.embedding_matrix],
-                                    input_length=self.maxlen,
-                                    trainable=self.trainable)(sequence_input)
-        embedding_layer = Dropout(0.3)(embedding_layer)
 
-        # layer1 = Conv1D(256,kernel_size=1,padding='same',activation='relu')(embedding_layer)
-        # attention = Bidirectional(GRU(256,return_sequences=True,activation='sigmoid'),merge_mode='sum')(layer1)
-        # layer1 = Multiply()([layer1,attention])
+        output = []
+        for file,embedding_matrix in self.embedding_matrix :
+            embedding_layer = Embedding(self.num_words,
+                                        self.EMBEDDING_DIM,
+                                        weights=[embedding_matrix],
+                                        input_length=self.maxlen,
+                                        trainable=self.trainable)(sequence_input)
+            embedding_layer = Dropout(0.3)(embedding_layer)
 
-
-        layer2 = Bidirectional(GRU(128,return_sequences=True),merge_mode='sum')(embedding_layer)
-        seqlayer = Bidirectional(GRU(64, return_sequences=False),merge_mode='sum')(layer2)
-
+            layer2 = Bidirectional(GRU(128,return_sequences=True),merge_mode='sum')(embedding_layer)
+            seqlayer = Bidirectional(GRU(64, return_sequences=False),merge_mode='sum')(layer2)
+            output.append(seqlayer)
+        seqlayer = add(output)
+        
         return seqlayer,sequence_input
 
     def __commentBlock_v2(self):
@@ -143,23 +144,14 @@ class dnn:
         embedding_layer = Dropout(0.3)(embedding_layer)
 
         layer1 = Conv1D(256,kernel_size=1,padding='same',activation='relu')(embedding_layer)
+        attention = Bidirectional(GRU(128,return_sequences=True,activation='sigmoid'),merge_mode='concat')(layer1)
+        layer1 = Multiply()([layer1,attention])
 
-        branch1 = CnnBlock('DenseNet',layer1,filters=256)
-        branch1 = Conv1D(128, kernel_size=1, padding='same', activation='relu')(branch1)
-        branch1 = MaxPool1D(pool_size=3, strides=2, padding='same')(branch1)
-        branch1 = CnnBlock('DenseNet',layer1,filters=128)(branch1)
-        branch1 = Conv1D(64,kernel_size=1,padding='same',activation='sigmoid')(branch1)
 
-        branch2 = CnnBlock('DenseNet', layer1, filters=256)(embedding_layer)
-        branch2 = Conv1D(128, kernel_size=1, padding='same', activation='relu')(branch2)
-        branch2 = MaxPool1D(pool_size=3, strides=2, padding='same')(branch2)
-        branch2 = CnnBlock('DenseNet', layer1, filters=128)(branch2)
-        branch2 = Conv1D(64,kernel_size=1,padding='same',activation='relu')(branch2)
+        layer2 = Bidirectional(GRU(64, return_sequences=True), merge_mode='sum')(layer1)
+        seqlayer = Bidirectional(GRU(64, return_sequences=False), merge_mode='sum')(layer2)
 
-        combine = Multiply()([branch2,branch1])
-        combine = GlobalAveragePooling1D()(combine)
-
-        return combine
+        return seqlayer, sequence_input
 
 
     def __CountFeature(self):
@@ -234,7 +226,7 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False,outputfile='baseline.csv.gz'):
 def train(batch_size=256,maxlen=200):
 
     trainset, testset, labels ,embedding_matrix = \
-        input.get_train_test(maxlen,trainfile='clean_train_fr.csv')
+        input.get_train_test(maxlen,trainfile='clean_train.csv')
 
     getmodel=lambda:dnn(batch_size,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
 
@@ -249,7 +241,7 @@ def train(batch_size=256,maxlen=200):
     # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
 
-    cv(getmodel,trainset,labels,testset,outputfile='fr.csv.gz')
+    cv(getmodel,trainset,labels,testset,outputfile='baseline.csv.gz')
 
 
 if __name__ == "__main__":

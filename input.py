@@ -45,7 +45,7 @@ usecols = [
 ]
 
 
-def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile='crawl',dimension=300):
+def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=('crawl',),dimension=300):
     """
 
     :param maxlen: 句子最大长度
@@ -63,7 +63,12 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile='crawl',dimens
     test['comment_text'].fillna(UNKONW, inplace=True)
     text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
 
-    sequences, embedding_matrix = embedding.get_embedding_matrix(text, maxlen, dimension, wordvecfile)
+    from keras.preprocessing.sequence import pad_sequences
+    print('tokenize word')
+    sentences, word_index, frequency = embedding.tokenize_sentences(text)
+    sentences = pad_sequences(sentences, maxlen=maxlen, truncating='post')
+    sequences = np.array(sentences)
+
     trainseq = sequences[:len(train)]
     testseq = sequences[len(train):]
     assert len(trainseq) == len(train)
@@ -90,6 +95,7 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile='crawl',dimens
         # 'tfidf2': tfidf_test[:,128:256],
         # 'tfidf3': tfidf_test[:,256:],
     }
+    embedding_matrix = embedding.get_wordvec(word_index, frequency, wordvecfile)
     return X,testX,labels,embedding_matrix
 
 def work(wordmat):

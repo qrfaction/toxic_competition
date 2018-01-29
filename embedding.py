@@ -54,19 +54,19 @@ def tokenize_sentences(sentences):
             if len(seq) not in lenseq:
                 lenseq[len(seq)]=0
             lenseq[len(seq)] +=1
-        print(lenseq)
         return seq_list,words_dict,frequency
 
     sentences = step_tokenize(sentences)
     freq = step_cal_frequency(sentences)
     return step_to_seq(sentences,freq)
 
-def get_embedding_matrix(sentences,maxlen,dimension,wordvecfile):
-    from keras.preprocessing.sequence import pad_sequences
-    print('tokenize word')
-    sentences , word_index ,frequency= tokenize_sentences(sentences)
-    sentences = pad_sequences(sentences, maxlen=maxlen, truncating='post')
-    sentences = np.array(sentences)
+def get_wordvec(word_index,frequency,wordvecfiles):
+    vec_matrix = {}
+    for file,dimension in wordvecfiles:
+        vec_matrix[file] = get_embedding_matrix(word_index,frequency,dimension,file)
+    return vec_matrix
+
+def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
 
     embeddings_index = input.read_wordvec(wordvecfile)
 
@@ -93,5 +93,5 @@ def get_embedding_matrix(sentences,maxlen,dimension,wordvecfile):
         f.write(json.dumps(noword,indent=4, separators=(',', ': ')))
     print('miss:', num_noword)
 
-    return sentences,embedding_matrix
+    return embedding_matrix
 

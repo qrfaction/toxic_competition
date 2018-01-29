@@ -13,7 +13,7 @@ from nltk.tokenize import word_tokenize
 
 warnings.filterwarnings("ignore")
 PATH='data/'
-UNKONW='.'
+UNKONW=' _UNK_ '
 
 eng_stopwords = set(stopwords.words("english"))
 lem = WordNetLemmatizer()
@@ -77,7 +77,7 @@ def CreateFeature(dataset):
 
         comment = re.sub("\\n+", ".", comment)
 
-        comment = re.sub("\\.+", '.', comment)
+        comment = re.sub("\\.+", ' . ', comment)
 
         comment = re.sub("\s+", " ", comment)
 
@@ -107,13 +107,13 @@ def cleanComment(comments):
 
         comment = comment.lower()
         # 去除IP
-        comment = re.sub(patternIP, "", comment)
+        comment = re.sub(patternIP, " ", comment)
         # 去除usernames
-        comment = re.sub("\[\[.*\]", "", comment)
+        comment = re.sub("\[\[.*\]", " ", comment)
         # 去除网址
         comment = re.sub(patternLink, " ", comment)
         # 去除非ascii字符
-        comment = re.sub("[^\x00-\x7F]+", "", comment)
+        comment = re.sub("[^\x00-\x7F]+", " ", comment)
         comment = re.sub("\\.+", ' . ', comment)
         # 分词
         words = word_tokenize(comment)
@@ -125,8 +125,9 @@ def cleanComment(comments):
         comment = " ".join(words)
         comment = comment.lower()
 
-        comment = re.sub('[\'\"=]+',' ',comment)
-        comment = re.sub('\p{P}+',' . ',comment)
+        comment = re.sub('[\|=*/\'\`\~]+',' ',comment)
+        comment = re.sub('\p{P}+','.',comment)
+        comment = re.sub('\\.+', ' . ', comment)
         comment = re.sub('\s+',' ',comment)
 
         # 纠正拼写错误
