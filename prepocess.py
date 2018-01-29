@@ -78,7 +78,7 @@ def CreateFeature(dataset):
 
         comment = re.sub("\\n+", ".", comment)
 
-        comment = re.sub("\.+", ' . ', comment)
+        comment = re.sub("\.{2,}", ' . ', comment)
 
         comment = re.sub("\s+", " ", comment)
 
@@ -118,10 +118,13 @@ def cleanComment(comments):
         comment = re.sub("\.+", ' . ', comment)
         comment = re.sub('[\|=*/\`\~\\\\]+', ' ', comment)
         # 分词
-        words = word_tokenize(comment)
+        from nltk.tokenize import TweetTokenizer
+        tknzr = TweetTokenizer()
+        words = tknzr.tokenize(comment)
 
         # 拼写纠正 以及 you're -> you are
         words = [APPO[word] if word in APPO else word for word in words]
+
         # 提取词干
         words = [lem.lemmatize(word, "v") for word in words]
         # 数字统一

@@ -3,11 +3,13 @@ from tqdm import tqdm
 import numpy as np
 import multiprocessing as mlp
 import input
+from nltk.tokenize import TweetTokenizer
 
 
 
 def tokenize_worker(sentences):
-    sentences = [word_tokenize(seq) for seq in tqdm(sentences)]
+    tknzr = TweetTokenizer()
+    sentences = [tknzr.tokenize(seq) for seq in tqdm(sentences)]
     return sentences
 
 def tokenize_sentences(sentences):
