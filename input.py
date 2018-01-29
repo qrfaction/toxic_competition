@@ -8,8 +8,9 @@ wordvec={
     'glove42':PATH+'glove.42B.300d.txt',
     'glove840':PATH+'glove.840B.300d.txt',
     'crawl':PATH+'crawl-300d-2M.vec',
+    'word2vec':PATH+'word2vec.txt'
 }
-UNKONW='unknow'
+UNKONW=' _UNK_ '
 
 usecols = [
     'comment_text',
@@ -45,7 +46,7 @@ usecols = [
 ]
 
 
-def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=('crawl',),dimension=300):
+def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('crawl',300),),dimension=300):
     """
 
     :param maxlen: 句子最大长度
@@ -138,10 +139,19 @@ def deal_index(filename):
     data.drop(['Unnamed: 0'],axis=1,inplace=True)
     data.to_csv(PATH+filename,index=False)
 
+def bin_to_text(filename,name):
+    from gensim.models.keyedvectors import KeyedVectors
+    PATH = 'data/'
+    model = KeyedVectors.load_word2vec_format(PATH+filename, binary=True)
+    model.save_word2vec_format(PATH+name,binary=False)
+
+
+
 if __name__ == "__main__":
-    a=read_dataset('labels.csv')
-    a.info()
-    deal_index('labels.csv')
+    # a=read_dataset('labels.csv')
+    # a.info()
+    # deal_index('labels.csv')
+    bin_to_text('word2vec.bin','word2vec.txt')
 
 
 

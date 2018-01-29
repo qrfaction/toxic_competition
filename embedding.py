@@ -5,8 +5,9 @@ import multiprocessing as mlp
 import input
 
 
+
 def tokenize_worker(sentences):
-    sentences = [ word_tokenize(seq) for seq in tqdm(sentences)]
+    sentences = [word_tokenize(seq) for seq in tqdm(sentences)]
     return sentences
 
 def tokenize_sentences(sentences):
@@ -73,9 +74,8 @@ def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
     print('get embedding matrix')
     num_words = len(word_index) + 1
     # 未知单词用0  停止符用-1
-    embedding_matrix = np.zeros((num_words,dimension))
-    embeddings_index[0] = -1
-
+    embedding_matrix = np.random.normal(0,0.33,size=(num_words,dimension))
+    embeddings_index[0] = 0
 
     noword = {}
     num_noword = 0

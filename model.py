@@ -1,7 +1,7 @@
 from keras.layers import Dense, Input
 from keras.layers import Conv1D, Embedding
 from keras.models import Model
-from keras.layers import Bidirectional,  Dropout,GRU,add,Reshape,Multiply,BatchNormalization
+from keras.layers import Bidirectional,Dropout,GRU,add,LSTM,Multiply,BatchNormalization
 from keras.layers.pooling import MaxPool1D,GlobalAveragePooling1D
 from keras.optimizers import RMSprop,Adam
 import prepocess
@@ -68,14 +68,13 @@ def CnnBlock(name,input_layer,filters):
         return DenseNet(input_layer,filters)
 
 class dnn:
-    def __init__(self,batch_size,num_words,
+    def __init__(self,batch_size,
                  EMBEDDING_DIM, embedding_matrix, maxlen, trainable=False):
 
         self.maxlen=maxlen
         self.trainable=trainable
         self.EMBEDDING_DIM=EMBEDDING_DIM
         self.embedding_matrix=embedding_matrix
-        self.num_words=num_words
 
         # tfidf, Input1, Input2, Input3 = self.__tfidfBlock()
         x, sequence_input = self.__commentBlock_v1()
@@ -118,8 +117,8 @@ class dnn:
         sequence_input = Input(shape=(self.maxlen,), dtype='int32', name='comment')
 
         output = []
-        for file,embedding_matrix in self.embedding_matrix :
-            embedding_layer = Embedding(self.num_words,
+        for file,embedding_matrix in self.embedding_matrix.items() :
+            embedding_layer = Embedding(len(embedding_matrix),
                                         self.EMBEDDING_DIM,
                                         weights=[embedding_matrix],
                                         input_length=self.maxlen,
@@ -129,30 +128,10 @@ class dnn:
             layer2 = Bidirectional(GRU(128,return_sequences=True),merge_mode='sum')(embedding_layer)
             seqlayer = Bidirectional(GRU(64, return_sequences=False),merge_mode='sum')(layer2)
             output.append(seqlayer)
+        if len(output) == 1:
+            return output[0],sequence_input
         seqlayer = add(output)
-        
         return seqlayer,sequence_input
-
-    def __commentBlock_v2(self):
-
-        sequence_input = Input(shape=(self.maxlen,), dtype='int32', name='comment')
-        embedding_layer = Embedding(self.num_words,
-                                    self.EMBEDDING_DIM,
-                                    weights=[self.embedding_matrix],
-                                    input_length=self.maxlen,
-                                    trainable=self.trainable)(sequence_input)
-        embedding_layer = Dropout(0.3)(embedding_layer)
-
-        layer1 = Conv1D(256,kernel_size=1,padding='same',activation='relu')(embedding_layer)
-        attention = Bidirectional(GRU(128,return_sequences=True,activation='sigmoid'),merge_mode='concat')(layer1)
-        layer1 = Multiply()([layer1,attention])
-
-
-        layer2 = Bidirectional(GRU(64, return_sequences=True), merge_mode='sum')(layer1)
-        seqlayer = Bidirectional(GRU(64, return_sequences=False), merge_mode='sum')(layer2)
-
-        return seqlayer, sequence_input
-
 
     def __CountFeature(self):
         x = Input(shape=(18,),name='countFeature')
@@ -224,11 +203,14 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False,outputfile='baseline.csv.gz'):
 
 
 def train(batch_size=256,maxlen=200):
-
+    wordvecfile = (
+                    # ('crawl', 300),
+                    ('glove42',300),
+                )
     trainset, testset, labels ,embedding_matrix = \
-        input.get_train_test(maxlen,trainfile='clean_train.csv')
+        input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
 
-    getmodel=lambda:dnn(batch_size,len(embedding_matrix),300,embedding_matrix,maxlen=maxlen)
+    getmodel=lambda:dnn(batch_size,300,embedding_matrix,maxlen=maxlen)
 
     # train_earlystop(getmodel,trainset,labels,testset)
 

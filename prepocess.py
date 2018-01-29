@@ -14,6 +14,7 @@ from nltk.tokenize import word_tokenize
 warnings.filterwarnings("ignore")
 PATH='data/'
 UNKONW=' _UNK_ '
+NUM = ' _NUM_ '
 
 eng_stopwords = set(stopwords.words("english"))
 lem = WordNetLemmatizer()
@@ -77,7 +78,7 @@ def CreateFeature(dataset):
 
         comment = re.sub("\\n+", ".", comment)
 
-        comment = re.sub("\\.+", ' . ', comment)
+        comment = re.sub("\.+", ' . ', comment)
 
         comment = re.sub("\s+", " ", comment)
 
@@ -114,21 +115,29 @@ def cleanComment(comments):
         comment = re.sub(patternLink, " ", comment)
         # 去除非ascii字符
         comment = re.sub("[^\x00-\x7F]+", " ", comment)
-        comment = re.sub("\\.+", ' . ', comment)
+        comment = re.sub("\.+", ' . ', comment)
+        comment = re.sub('[\|=*/\`\~\\\\]+', ' ', comment)
         # 分词
         words = word_tokenize(comment)
 
-        # 省略词替换（参考APPO、nltk）：you're -> you are
+        # 拼写纠正 以及 you're -> you are
         words = [APPO[word] if word in APPO else word for word in words]
+        # 提取词干
         words = [lem.lemmatize(word, "v") for word in words]
-        words = [w for w in words if w not in eng_stopwords]
-        comment = " ".join(words)
-        comment = comment.lower()
+        # 数字统一
+        for i in range(len(words)):
+            if words[i].isdigit() and words[i]!='911':
+                words[i] = NUM
 
-        comment = re.sub('[\|=*/\'\`\~]+',' ',comment)
-        comment = re.sub('\p{P}+','.',comment)
-        comment = re.sub('\\.+', ' . ', comment)
+        # words = [w for w in words if w not in eng_stopwords]
+        comment = " ".join(words)
+
+
+        comment = comment.lower()
+        comment = re.sub('[\'\"]+',' " ',comment)
         comment = re.sub('\s+',' ',comment)
+
+
 
         # 纠正拼写错误
         # for word,pos in tknzr(comment):
