@@ -15,6 +15,7 @@ warnings.filterwarnings("ignore")
 PATH='data/'
 UNKONW=' _UNK_ '
 NUM = ' _NUM_ '
+SHUABING = ' _SHUABING_ '
 
 eng_stopwords = set(stopwords.words("english"))
 lem = WordNetLemmatizer()
@@ -96,6 +97,7 @@ def cleanComment(comments):
     """
     patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
     patternIP = '\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}'
+    patternEmail = '^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$'
     from enchant.tokenize import get_tokenizer
     import enchant
 
@@ -109,14 +111,17 @@ def cleanComment(comments):
         comment = comment.lower()
         # 去除IP
         comment = re.sub(patternIP, " ", comment)
+        # 去除邮箱
+        comment = re.sub(patternEmail,' ',comment)
         # 去除usernames
         comment = re.sub("\[\[.*\]", " ", comment)
         # 去除网址
         comment = re.sub(patternLink, " ", comment)
         # 去除非ascii字符
         comment = re.sub("[^\x00-\x7F]+", " ", comment)
-        comment = re.sub("\.+", ' . ', comment)
-        comment = re.sub('[\|=*/\`\~\\\\]+', ' ', comment)
+        comment = re.sub("(\d+\.\d+)",NUM,comment)
+        comment = re.sub("\.+", ' . ', comment)            #帮助分词
+        comment = re.sub('[\|=*/\`\~\\\\\}\{]+', ' ', comment)
         # 分词
         from nltk.tokenize import TweetTokenizer
         tknzr = TweetTokenizer()
@@ -132,15 +137,15 @@ def cleanComment(comments):
             if words[i].isdigit() and words[i]!='911':
                 words[i] = NUM
 
-        # words = [w for w in words if w not in eng_stopwords]
+        words = [w for w in words if w not in eng_stopwords]
         comment = " ".join(words)
 
 
         comment = comment.lower()
         comment = re.sub('[\'\"]+',' " ',comment)
         comment = re.sub('\s+',' ',comment)
-
-
+        comment = re.sub('(\. )+',' . ',comment)
+        comment = re.sub('(\. \.)+',' . ',comment)
 
         # 纠正拼写错误
         # for word,pos in tknzr(comment):

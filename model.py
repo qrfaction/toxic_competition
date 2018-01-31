@@ -12,8 +12,15 @@ from sklearn.cross_validation import KFold
 import numpy as np
 from keras import regularizers
 import pandas as pd
-
+from keras import backend as K
+import numpy as np
+import tensorflow as tf
+import tool
+import torch.nn.functional as func
+import torch.nn as nn
 TFIDF_DIM = 128
+BATCHSIZE = 256
+import torch
 
 def CnnBlock(name,input_layer,filters):
     def Res_Inception(input_layer, filters, activate=True):
@@ -67,6 +74,26 @@ def CnnBlock(name,input_layer,filters):
     elif name=='DenseNet':
         return DenseNet(input_layer,filters)
 
+
+class auc_loss(nn.Module):
+    def __init__(self):
+        super(auc_loss,self).__init__()
+        self.batchsize = 128
+
+    def forword(self,y_true,y_pred):
+        y_pred = y_pred/(1-y_pred)
+
+        loss = 0
+        for i in range(6):
+            yi = y_pred[:,i]
+            y_pos = torch.masked_select(yi,y_true.gt(0.5))  # gt greater than
+            y_pos = 1/y_pos
+            y_neg = torch.masked_select(yi,y_true.lt(0.5))  # lt less than
+
+            loss += torch.sum(torch.mm(y_neg.t(),y_pos))
+
+        return loss/128**2
+
 class dnn:
     def __init__(self,batch_size,
                  EMBEDDING_DIM, embedding_matrix, maxlen, trainable=False):
@@ -91,9 +118,9 @@ class dnn:
 
         self.model = Model(inputs=X, outputs=[output])
 
-        optimizer = RMSprop(clipvalue=1,lr=0.002)
+        optimizer = RMSprop(lr=0.0015)
         # optimizer = Adam(lr=0.002,clipvalue=1)
-        self.model.compile(loss='binary_crossentropy',
+        self.model.compile(loss=fbeta_bce_loss,
                       optimizer=optimizer,
                       metrics=['accuracy'])
         self.batch_size=batch_size
@@ -141,7 +168,7 @@ class dnn:
         return fc,x
 
     def fit(self,X,Y,verbose=1):
-        self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,shuffle=False)
+        self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,shuffle=True)
 
     def predict(self,X,verbose=1):
         return self.model.predict(X,verbose=verbose)
@@ -149,37 +176,25 @@ class dnn:
     def evaluate(self, X, Y, verbose=1):
         return self.model.evaluate(X, Y, verbose=verbose)
 
-def splitdata(index_train,index_valid,dataset):
-    train_x={}
-    valid_x={}
-    for key in dataset.keys():
-        train_x[key] = dataset[key][index_train]
-        valid_x[key] = dataset[key][index_valid]
 
-    return train_x,valid_x
 
 def cv(get_model, X, Y, test,K=10, geo_mean=False,outputfile='baseline.csv.gz'):
 
     kf = KFold(len(Y), n_folds=K, shuffle=False)
 
     results = []
-    total_loss=[]
     for i, (train_index, valid_index) in enumerate(kf):
         print('第{}次训练...'.format(i))
-        trainset , validset = splitdata( train_index,valid_index ,X)
+        trainset = tool.splitdata( train_index,X)
         label_train = Y[train_index]
+
+        validset = tool.splitdata( valid_index,X)
         label_valid = Y[valid_index]
 
         model=get_model()
-        model.fit(trainset, label_train)
-        loss = model.evaluate(validset, label_valid)  #验证集上的loss、acc
-
-        print("valid set score:", loss)
-        total_loss.append(loss)
-
+        model = _train_model(model,train_x=trainset,train_y=label_train,
+                             val_x=validset,val_y=label_valid)
         results.append(model.predict(test))
-
-    print('total loss',np.array(total_loss).mean(axis=0))
 
     if geo_mean == True:
         test_predicts = np.ones(results[0].shape)
@@ -198,23 +213,71 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False,outputfile='baseline.csv.gz'):
     sample_submission[list_classes] = test_predicts
     sample_submission.to_csv(outputfile, index=False, compression='gzip')
 
+def _train_model(model,train_x, train_y, val_x, val_y,batchsize = 256,frequecy = 100):
+    from sklearn.metrics import roc_auc_score
+
+    best_score = -1
+    best_iter = 1
+    iter = 1
+
+    generator = tool.Generate(train_x,train_y)
+
+    # 从threat 开始
+    next_col = 3
+    samples_x ,samples_y= generator.genrerate_samples(next_col,batchsize)
+
+
+    while True:
+        model.fit(samples_x,samples_y)
+
+        # evaulate
+        if iter % frequecy ==0:
+            print("Epoch {0} best_score {1}".format(iter,best_score))
+            y_pred = model.predict(val_x)
+            Y = val_y
+        else :
+            y_pred = model.predict(samples_x)
+            Y = samples_y
+
+        # 计算下一个需要优化的标签
+        Scores = []
+        min_score = -1
+        for i in range(6):
+            score = roc_auc_score(Y,y_pred[:,i])
+            Scores.append(score)
+            if score < min_score :
+                min_score = score
+                next_col = i
+
+        mean_score = np.mean(Scores)
+        if best_score < mean_score:
+            best_score = mean_score
+            best_iter = iter
+        elif iter - best_iter == 5 :
+            break
+
+
+        samples_x, samples_y = generator.genrerate_samples(next_col, batchsize)
+        iter +=1
+
+    return model
 
 
 
-
-def train(batch_size=256,maxlen=200):
+def train(batch_size=25600,maxlen=200):
     wordvecfile = (
                     # ('crawl', 300),
-                    ('glove42',300),
+                    ('crawl',300),
                 )
     trainset, testset, labels ,embedding_matrix = \
         input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
 
-    getmodel=lambda:dnn(batch_size,300,embedding_matrix,maxlen=maxlen)
+    getmodel=lambda:dnn(batch_size,300,embedding_matrix,maxlen=maxlen,trainable=True)
 
     # train_earlystop(getmodel,trainset,labels,testset)
 
-    model = getmodel()
+    # model = getmodel()
+    #
     # model.fit(trainset,labels)
     #
     # list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
@@ -223,7 +286,7 @@ def train(batch_size=256,maxlen=200):
     # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
 
 
-    cv(getmodel,trainset,labels,testset,outputfile='baseline.csv.gz')
+    cv(getmodel,trainset,labels,testset,outputfile='baseline.csv.gz',K=6)
 
 
 if __name__ == "__main__":

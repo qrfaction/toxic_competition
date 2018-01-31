@@ -15,14 +15,11 @@ def cal_mean():
 
     labels= pd.read_csv(PATH+'labels.csv')
 
-    print(labels.describe())
+    weight = labels.sum()
+    weight = labels.shape[0] / weight
+    print(weight)
 
-    kf = KFold(len(labels), n_folds=6, shuffle=False)
-    print(list(kf)[3])
-    for i, (train_index, valid_index) in enumerate(kf):
-        print(i,'----------------')
-        print(labels.iloc[valid_index].describe())
-        print(labels.iloc[train_index].describe())
+
 
 def bagging():
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
@@ -51,7 +48,6 @@ def bagging():
     output.to_csv('output.csv.gz',index=False,compression='gzip')
 
 
-
 # cal_mean()
 # post_deal()
-bagging()
+# bagging()

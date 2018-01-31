@@ -76,7 +76,7 @@ def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
     print('get embedding matrix')
     num_words = len(word_index) + 1
     # 未知单词用0  停止符用-1
-    embedding_matrix = np.random.normal(0,0.33,size=(num_words,dimension))
+    embedding_matrix = np.random.uniform(-0.25,0.25,size=(num_words,dimension))
     embeddings_index[0] = 0
 
     noword = {}
