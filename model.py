@@ -2,97 +2,21 @@ from keras.layers import Dense, Input
 from keras.layers import Conv1D, Embedding
 from keras.models import Model
 from keras.layers import Bidirectional,Dropout,GRU,add,LSTM,Multiply,BatchNormalization
-from keras.layers.pooling import MaxPool1D,GlobalAveragePooling1D
 from keras.optimizers import RMSprop,Adam
-import prepocess
+import nnBlock
 import input
-from keras.layers.advanced_activations import PReLU
-from keras.layers.merge import concatenate
 from sklearn.cross_validation import KFold
 import numpy as np
 from keras import regularizers
-import pandas as pd
-from keras import backend as K
 import numpy as np
-import tensorflow as tf
 import tool
-import torch.nn.functional as func
-import torch.nn as nn
+
+
 TFIDF_DIM = 128
 BATCHSIZE = 256
-import torch
-
-def CnnBlock(name,input_layer,filters):
-    def Res_Inception(input_layer, filters, activate=True):
-        filters = int(filters / 4)
-        Ince_5 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(input_layer)
-        Ince_5 = Conv1D(filters=filters, kernel_size=3, strides=1, padding='same', activation='relu')(Ince_5)
-        Ince_5 = Conv1D(filters=filters, kernel_size=3, strides=1, padding='same')(Ince_5)
-        Ince_5 = PReLU()(Ince_5)
-
-        Ince_3 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(input_layer)
-        Ince_3 = Conv1D(filters=filters, kernel_size=3, strides=1, padding='same')(Ince_3)
-        Ince_3 = PReLU()(Ince_3)
-
-        Ince_pool = MaxPool1D(pool_size=3, strides=1, padding='same')(input_layer)
-        Ince_pool = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same')(Ince_pool)
-        Ince_pool = PReLU()(Ince_pool)
-
-        Ince_1 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same')(input_layer)
-        Ince_1 = PReLU()(Ince_1)
-
-        Ince = concatenate([Ince_3, Ince_5, Ince_pool, Ince_1], axis=-1)
-        if activate == True:
-            res_util = add([input_layer, Ince])
-            res_util = PReLU()(res_util)
-        else:
-            res_util = Ince
-        return res_util
-
-    def DenseNet(input_layer, filters ):
-        filters = int(filters / 4)
-        DBlock1 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(input_layer)
-        DBlock1 = concatenate([DBlock1, input_layer])
-        DBlock1 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(DBlock1)
-
-        DBlock2 = Res_Inception(DBlock1, filters, activate=False)
-        DBlock2 = concatenate([DBlock2, DBlock1, input_layer])
-        DBlock2 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(DBlock2)
-
-        DBlock3 = Res_Inception(DBlock2, filters, activate=False)
-        DBlock3 = concatenate([DBlock3, DBlock2, DBlock1, input_layer])
-        DBlock3 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(DBlock3)
-
-        DBlock4 = Res_Inception(DBlock3, filters, activate=False)
-        DBlock4 = concatenate([DBlock4, DBlock3, DBlock2, DBlock1])
-        DBlock4 = add([DBlock4,input_layer])
-
-        return DBlock4
-
-    if name=='res_inception':
-        return Res_Inception(input_layer,filters)
-    elif name=='DenseNet':
-        return DenseNet(input_layer,filters)
 
 
-class auc_loss(nn.Module):
-    def __init__(self):
-        super(auc_loss,self).__init__()
-        self.batchsize = 128
 
-    def forword(self,y_true,y_pred):
-        y_pred = y_pred/(1-y_pred)
-
-        loss = 0
-        for i in range(6):
-            yi = y_pred[:,i]
-            y_pos = torch.masked_select(yi,y_true.gt(0.5))  # gt greater than
-            y_pos = 1/y_pos
-            y_neg = torch.masked_select(yi,y_true.lt(0.5))  # lt less than
-
-            loss += torch.sum(torch.mm(y_neg.t(),y_pos))
-
-        return loss/128**2
 
 class dnn:
     def __init__(self,batch_size,
@@ -220,60 +144,41 @@ def _train_model(model,train_x, train_y, val_x, val_y,batchsize = 256,frequecy =
     best_iter = 1
     iter = 1
 
-    generator = tool.Generate(train_x,train_y)
+    generator = tool.Generate(train_x,train_y,batchsize)
 
     # 从threat 开始
-    next_col = 3
-    samples_x ,samples_y= generator.genrerate_samples(next_col,batchsize)
-
-
     while True:
+        samples_x, samples_y = generator.genrerate_samples()
         model.fit(samples_x,samples_y)
-
         # evaulate
         if iter % frequecy ==0:
             print("Epoch {0} best_score {1}".format(iter,best_score))
             y_pred = model.predict(val_x)
-            Y = val_y
-        else :
-            y_pred = model.predict(samples_x)
-            Y = samples_y
+            Scores = []
+            for i in range(6):
+                score = roc_auc_score(val_y[:, i], y_pred[:, i])
+                Scores.append(score)
+            mean_score = np.mean(Scores)
+            if best_score < mean_score:
+                best_score = mean_score
+                best_iter = iter
+            elif iter - best_iter >= 2*frequecy:
+                break
 
-        # 计算下一个需要优化的标签
-        Scores = []
-        min_score = -1
-        for i in range(6):
-            score = roc_auc_score(Y,y_pred[:,i])
-            Scores.append(score)
-            if score < min_score :
-                min_score = score
-                next_col = i
-
-        mean_score = np.mean(Scores)
-        if best_score < mean_score:
-            best_score = mean_score
-            best_iter = iter
-        elif iter - best_iter == 5 :
-            break
-
-
-        samples_x, samples_y = generator.genrerate_samples(next_col, batchsize)
         iter +=1
 
     return model
 
-
-
-def train(batch_size=25600,maxlen=200):
+def train(batch_size=256,maxlen=200):
     wordvecfile = (
                     # ('crawl', 300),
                     ('crawl',300),
                 )
     trainset, testset, labels ,embedding_matrix = \
         input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
-
-    getmodel=lambda:dnn(batch_size,300,embedding_matrix,maxlen=maxlen,trainable=True)
-
+    embedding_matrix = embedding_matrix['crawl']
+    # getmodel=lambda:dnn(batch_size,300,embedding_matrix,maxlen=maxlen,trainable=True)
+    getmodel=lambda:nnBlock.DnnModle(batch_size,300,embedding_matrix,trainable=True)
     # train_earlystop(getmodel,trainset,labels,testset)
 
     # model = getmodel()

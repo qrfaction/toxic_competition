@@ -557,6 +557,10 @@ APPO = {
     'gfdl': ' ',
     'mainpagebg': ' ',  # css
     'cuntnlu': 'cunt nlu',
+    'f*ck':'fuck',
+    'phuck':'fuck',
+    'fuckff':'fuck off',
+    'horseshit':'horse shit',
 
     'oompapa': SHUABING,
     'dixz': SHUABING,

@@ -11,7 +11,7 @@ def splitdata(index_train,dataset):
 
 class Generate:
 
-    def __init__(self,train,labels):
+    def __init__(self,train,labels,batchsize=256,shuffle=True):
         """
         :param labels: 标签  array  (samples,6)
 
@@ -25,15 +25,22 @@ class Generate:
             # where 返回元组
             self.positive_samples[i] = np.where( labels[:,i]==1 )[0]
             self.negative_samples[i] = np.where( labels[:,i]==0 )[0]
-
         self.history = set([])
 
-    def genrerate_samples(self,col,batchsize=256):
+        self.batchsize = batchsize
+        # sample
+        self.begin = 0
+        self.end   = self.batchsize
+        if shuffle == True:
+            np.random.shuffle(list(range(0,len(labels))))
+        else :
+            self.index = list(range(0,len(labels)))
 
-        pos_list = []
-        neg_list = []
+    def genrerate_rank_samples(self,col):
+
+        samples_list = []
         num = 0
-        while num < batchsize :
+        while num < self.batchsize :
 
             pos_index = random.choice(self.positive_samples[col])
             neg_index = random.choice(self.negative_samples[col])
@@ -47,16 +54,35 @@ class Generate:
             self.history.add(pair)
             num += 2
 
-            pos_list.append(pos_index)
-            neg_list.append(neg_index)
+            samples_list.append(pos_index)
+            samples_list.append(neg_index)
 
-        samples_index = pos_list.extend(neg_list)
 
-        train_x = splitdata(samples_index,self.trainset)
-        train_y = self.labels[samples_index]
+        train_x = splitdata(samples_list,self.trainset)
+
+        train_y = self.labels[samples_list]
+        return train_x,train_y
+
+    def genrerate_samples(self):
+
+        sample_index = self.index[self.begin:self.end]
+
+        train_x = splitdata(sample_index,self.trainset)
+        train_y = self.labels[sample_index]
+        self.begin = self.end
+        self.end += self.batchsize
+        if self.end > len(self.labels):
+            np.random.shuffle(list(range(0,len(self.labels))))
+            self.begin = 0
+            self.end = self.batchsize
         return train_x,train_y
 
 
+
+
+
+
+# class GenerateDataLoader()
 
 
 
