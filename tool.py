@@ -31,10 +31,10 @@ class Generate:
         # sample
         self.begin = 0
         self.end   = self.batchsize
+        self.index = list(range(0, len(labels)))
         if shuffle == True:
-            np.random.shuffle(list(range(0,len(labels))))
-        else :
-            self.index = list(range(0,len(labels)))
+            np.random.shuffle(self.index)
+
 
     def genrerate_rank_samples(self,col):
 
@@ -72,7 +72,7 @@ class Generate:
         self.begin = self.end
         self.end += self.batchsize
         if self.end > len(self.labels):
-            np.random.shuffle(list(range(0,len(self.labels))))
+            np.random.shuffle(self.index)
             self.begin = 0
             self.end = self.batchsize
         return train_x,train_y
