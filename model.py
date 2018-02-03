@@ -10,6 +10,8 @@ import numpy as np
 from keras import regularizers
 import numpy as np
 import tool
+import torch
+
 
 
 TFIDF_DIM = 128
@@ -144,32 +146,53 @@ def _train_model(model,train_x, train_y, val_x, val_y,batchsize = 256,frequecy =
     best_iter = 1
     iter = 1
 
-    generator = tool.Generate(train_x,train_y,batchsize)
+    generator = tool.Generate(train_x,train_y,batchsize,shuffle=True)
 
-    # 从threat 开始
+    # nextcol = 3
+
     while True:
+        # samples_x, samples_y = generator.genrerate_rank_samples(nextcol)
         samples_x, samples_y = generator.genrerate_samples()
-        model.fit(samples_x,samples_y)
+        model.fit(samples_x,samples_y,'celoss')
         # evaulate
         if iter % frequecy ==0:
             print("Epoch {0} best_score {1}".format(iter,best_score))
             y_pred = model.predict(val_x)
             Scores = []
+            # minscore = 1
             for i in range(6):
                 score = roc_auc_score(val_y[:, i], y_pred[:, i])
                 Scores.append(score)
+                # if score<minscore:
+                #     minscore=score
+                #     nextcol=i
             mean_score = np.mean(Scores)
             if best_score < mean_score:
                 best_score = mean_score
-                best_iter = iter
-            elif iter - best_iter >= 2*frequecy:
+                # best_iter = iter
+            # elif iter - best_iter >= frequecy:
+            else:
                 break
+            print(mean_score,Scores)
+        # else:
+        #     y_pred = model.predict(samples_x)
+        #     Scores = []
+        #     minscore = 1
+        #     for i in range(6):
+        #         score = roc_auc_score(samples_y[:, i], y_pred[:, i])
+        #         Scores.append(score)
+        #         if score < minscore:
+        #             minscore = score
+        #             nextcol = i
+        #     print(Scores)
+
 
         iter +=1
 
     return model
 
-def train(batch_size=256,maxlen=200):
+
+def train(maxlen=200):
     wordvecfile = (
                     # ('crawl', 300),
                     ('crawl',300),
@@ -178,7 +201,7 @@ def train(batch_size=256,maxlen=200):
         input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
     embedding_matrix = embedding_matrix['crawl']
     # getmodel=lambda:dnn(batch_size,300,embedding_matrix,maxlen=maxlen,trainable=True)
-    getmodel=lambda:nnBlock.DnnModle(batch_size,300,embedding_matrix,trainable=True)
+    getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=True,alpha = 3)
     # train_earlystop(getmodel,trainset,labels,testset)
 
     # model = getmodel()

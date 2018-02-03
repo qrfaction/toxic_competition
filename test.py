@@ -31,7 +31,8 @@ def bagging():
         'GRU3.csv.gz':6,
         'frGRU1.csv.gz':4,
         'gloveGRU1.csv.gz':4,
-
+        'kernel.csv.gz':26,
+        'kernel2.csv.gz':10,
         # 'baseline.csv.gz':6,
     }
     output = pd.read_csv(PATH + 'GRU1.csv.gz')
@@ -50,4 +51,4 @@ def bagging():
 
 # cal_mean()
 # post_deal()
-# bagging()
+bagging()

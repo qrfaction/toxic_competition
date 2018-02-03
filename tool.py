@@ -1,6 +1,7 @@
 import numpy as np
 import random
-
+from torch.utils.data import Dataset, DataLoader
+import torch
 
 def splitdata(index_train,dataset):
     train_x={}
@@ -76,7 +77,6 @@ class Generate:
             self.begin = 0
             self.end = self.batchsize
         return train_x,train_y
-
 
 
 

@@ -98,11 +98,9 @@ def cleanComment(comments):
     patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
     patternIP = '\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}'
     patternEmail = '^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$'
-    from enchant.tokenize import get_tokenizer
-    import enchant
 
-    tknzr = get_tokenizer("en_US")
-    w_dict = enchant.Dict("en_US")
+    from nltk.tokenize import TweetTokenizer
+    tknzr = TweetTokenizer()
 
     clean_comments = []
 
@@ -123,8 +121,6 @@ def cleanComment(comments):
         comment = re.sub("\.+", ' . ', comment)            #帮助分词
         comment = re.sub('[\|=*/\`\~\\\\\}\{]+', ' ', comment)
         # 分词
-        from nltk.tokenize import TweetTokenizer
-        tknzr = TweetTokenizer()
         words = tknzr.tokenize(comment)
 
         # 拼写纠正 以及 you're -> you are
