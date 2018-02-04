@@ -32,7 +32,7 @@ def cv(get_model, X, Y, test,K=10,outputfile='baseline.csv.gz'):
         scores.append(model_score)
         results.append(model.predict(test))
 
-    test_predicts = tool.cal_mean(results,MEAN_TYPE)
+    test_predicts = tool.cal_mean(results,MEAN_TYPE,scores)
 
 
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
@@ -83,16 +83,6 @@ def train(maxlen=200):
     embedding_matrix = embedding_matrix['crawl']
 
     getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=True,alpha = 2,loss='focal_loss')
-
-    # model = getmodel()
-    #
-    # model.fit(trainset,labels)
-    #
-    # list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
-    # sample_submission = input.read_dataset('sample_submission.csv')
-    # sample_submission[list_classes] = model.predict(testset)
-    # sample_submission.to_csv("baseline.csv.gz", index=False, compression='gzip')
-
 
     cv(getmodel,trainset,labels,testset,outputfile='baseline.csv.gz',K=6)
 

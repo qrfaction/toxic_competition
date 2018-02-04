@@ -91,18 +91,27 @@ class Generate:
         return train_x,train_y
 
 
-def cal_mean(results,mean_type):
+def cal_mean(results,mean_type,scores=None):
+
+    if scores is None:
+        weights = np.ones(len(results))
+    else :
+        scores = np.array(scores)
+        scores -= 0.98
+        scores *=10000
+        weights = np.int64(scores)
+        print(weights)
 
     if mean_type == 'geo_mean':
         test_predicts = np.ones(results[0].shape)
-        for fold_predict in results:
-            test_predicts *= fold_predict
-        test_predicts **= (1. / len(results))
+        for fold_predict,weight in results,weights:
+            test_predicts *= (fold_predict**weight)
+        test_predicts **= (1. / np.sum(weights))
     elif mean_type == 'arith_mean':
         test_predicts = np.zeros(results[0].shape)
-        for fold_predict in results:
-            test_predicts += fold_predict
-        test_predicts /= len(results)
+        for fold_predict,weight in results,weights:
+            test_predicts += (fold_predict * weight)
+        test_predicts /= np.sum(weights)
 
     return test_predicts
 
