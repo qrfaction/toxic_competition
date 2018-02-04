@@ -1,110 +1,17 @@
-from keras.layers import Dense, Input
-from keras.layers import Conv1D, Embedding
-from keras.models import Model
-from keras.layers import Bidirectional,Dropout,GRU,add,LSTM,Multiply,BatchNormalization
-from keras.optimizers import RMSprop,Adam
 import nnBlock
 import input
 from sklearn.cross_validation import KFold
-import numpy as np
-from keras import regularizers
 import numpy as np
 import tool
 import torch
 
 
-
+MEAN_TYPE = 'arith_mean'
 TFIDF_DIM = 128
 BATCHSIZE = 256
 
 
-
-
-class dnn:
-    def __init__(self,batch_size,
-                 EMBEDDING_DIM, embedding_matrix, maxlen, trainable=False):
-
-        self.maxlen=maxlen
-        self.trainable=trainable
-        self.EMBEDDING_DIM=EMBEDDING_DIM
-        self.embedding_matrix=embedding_matrix
-
-        # tfidf, Input1, Input2, Input3 = self.__tfidfBlock()
-        x, sequence_input = self.__commentBlock_v1()
-
-        # cF,cF_x  = self.__CountFeature()
-
-        # combine = concatenate([x,cF])
-
-        output = Dense(6, activation="sigmoid")(x)
-        X = [
-                sequence_input,
-            # ,Input1,Input2,Input3
-            ]
-
-        self.model = Model(inputs=X, outputs=[output])
-
-        optimizer = RMSprop(lr=0.0015)
-        # optimizer = Adam(lr=0.002,clipvalue=1)
-        self.model.compile(loss=fbeta_bce_loss,
-                      optimizer=optimizer,
-                      metrics=['accuracy'])
-        self.batch_size=batch_size
-
-    def __tfidfBlock(self):
-        Input1 = Input(shape=(TFIDF_DIM,), name='tfidf1')
-        Input2 = Input(shape=(TFIDF_DIM,), name='tfidf2')
-        Input3 = Input(shape=(TFIDF_DIM,), name='tfidf3')
-
-        tfidf1 = Dense(32, activation='relu')(Input1)
-
-        tfidf2 = Dense(32, activation='relu')(Input2)
-
-        tfidf3 = Dense(32, activation='relu')(Input3)
-
-        tfidf = add([tfidf1,tfidf2,tfidf3])
-
-        return tfidf,Input1,Input2,Input3
-
-    def __commentBlock_v1(self):
-        sequence_input = Input(shape=(self.maxlen,), dtype='int32', name='comment')
-
-        output = []
-        for file,embedding_matrix in self.embedding_matrix.items() :
-            embedding_layer = Embedding(len(embedding_matrix),
-                                        self.EMBEDDING_DIM,
-                                        weights=[embedding_matrix],
-                                        input_length=self.maxlen,
-                                        trainable=self.trainable)(sequence_input)
-            embedding_layer = Dropout(0.3)(embedding_layer)
-
-            layer2 = Bidirectional(GRU(128,return_sequences=True),merge_mode='sum')(embedding_layer)
-            seqlayer = Bidirectional(GRU(64, return_sequences=False),merge_mode='sum')(layer2)
-            output.append(seqlayer)
-        if len(output) == 1:
-            return output[0],sequence_input
-        seqlayer = add(output)
-        return seqlayer,sequence_input
-
-    def __CountFeature(self):
-        x = Input(shape=(18,),name='countFeature')
-
-        fc = Dense(64,activation='relu',kernel_regularizer=regularizers.l1(0.01))(x)
-
-        return fc,x
-
-    def fit(self,X,Y,verbose=1):
-        self.model.fit(X,Y,batch_size=self.batch_size,verbose=verbose,shuffle=True)
-
-    def predict(self,X,verbose=1):
-        return self.model.predict(X,verbose=verbose)
-
-    def evaluate(self, X, Y, verbose=1):
-        return self.model.evaluate(X, Y, verbose=verbose)
-
-
-
-def cv(get_model, X, Y, test,K=10, geo_mean=False,outputfile='baseline.csv.gz'):
+def cv(get_model, X, Y, test,K=10,outputfile='baseline.csv.gz'):
 
     kf = KFold(len(Y), n_folds=K, shuffle=False)
 
@@ -122,16 +29,7 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False,outputfile='baseline.csv.gz'):
                              val_x=validset,val_y=label_valid)
         results.append(model.predict(test))
 
-    if geo_mean == True:
-        test_predicts = np.ones(results[0].shape)
-        for fold_predict in results:
-            test_predicts *= fold_predict
-        test_predicts **= (1. / len(results))
-    else:
-        test_predicts = np.zeros(results[0].shape)
-        for fold_predict in results:
-            test_predicts += fold_predict
-        test_predicts /= len(results)
+    test_predicts = tool.cal_mean(results,MEAN_TYPE)
 
 
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
@@ -142,52 +40,34 @@ def cv(get_model, X, Y, test,K=10, geo_mean=False,outputfile='baseline.csv.gz'):
 def _train_model(model,train_x, train_y, val_x, val_y,batchsize = 256,frequecy = 100):
     from sklearn.metrics import roc_auc_score
 
-    best_score = -1
-    best_iter = 1
+    dataset = tool.CommentData(train_x,train_y)
+    loader = torch.utils.data.DataLoader(
+        dataset=dataset,  # torch TensorDataset format
+        batch_size=batchsize,  # mini batch size
+        shuffle=True,  # 要不要打乱数据 (打乱比较好)
+        num_workers=2,  # 多线程来读数据
+    )
     iter = 1
-
-    generator = tool.Generate(train_x,train_y,batchsize,shuffle=True)
-
-    # nextcol = 3
-
-    while True:
-        # samples_x, samples_y = generator.genrerate_rank_samples(nextcol)
-        samples_x, samples_y = generator.genrerate_samples()
-        model.fit(samples_x,samples_y,'celoss')
-        # evaulate
-        if iter % frequecy ==0:
-            print("Epoch {0} best_score {1}".format(iter,best_score))
-            y_pred = model.predict(val_x)
-            Scores = []
-            # minscore = 1
-            for i in range(6):
-                score = roc_auc_score(val_y[:, i], y_pred[:, i])
-                Scores.append(score)
-                # if score<minscore:
-                #     minscore=score
-                #     nextcol=i
-            mean_score = np.mean(Scores)
-            if best_score < mean_score:
-                best_score = mean_score
-                # best_iter = iter
-            # elif iter - best_iter >= frequecy:
-            else:
-                break
-            print(mean_score,Scores)
-        # else:
-        #     y_pred = model.predict(samples_x)
-        #     Scores = []
-        #     minscore = 1
-        #     for i in range(6):
-        #         score = roc_auc_score(samples_y[:, i], y_pred[:, i])
-        #         Scores.append(score)
-        #         if score < minscore:
-        #             minscore = score
-        #             nextcol = i
-        #     print(Scores)
-
-
-        iter +=1
+    best_score = -1
+    for epoch in range(1000000000):
+        for samples_x,samples_y in loader:
+            model.fit(samples_x,samples_y,'celoss')
+            # evaulate
+            if iter % frequecy ==0:
+                y_pred = model.predict(val_x)
+                Scores = []
+                for i in range(6):
+                    score = roc_auc_score(val_y[:, i], y_pred[:, i])
+                    Scores.append(score)
+                mean_score = np.mean(Scores)
+                print("iters {0} best_score {1}".format(iter, best_score))
+                print(mean_score)
+                print(Scores)
+                if best_score < mean_score:
+                    best_score = mean_score
+                else:
+                    break
+            iter +=1
 
     return model
 
@@ -200,9 +80,8 @@ def train(maxlen=200):
     trainset, testset, labels ,embedding_matrix = \
         input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
     embedding_matrix = embedding_matrix['crawl']
-    # getmodel=lambda:dnn(batch_size,300,embedding_matrix,maxlen=maxlen,trainable=True)
-    getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=True,alpha = 3)
-    # train_earlystop(getmodel,trainset,labels,testset)
+
+    getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=True,alpha = 2)
 
     # model = getmodel()
     #

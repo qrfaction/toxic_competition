@@ -10,6 +10,18 @@ def splitdata(index_train,dataset):
     return train_x
 
 
+class CommentData(torch.utils.data.Dataset):
+    def __init__(self, trainset , labels):
+        self.trainset = torch.LongTensor(trainset['comment'].tolist())
+        self.labels = torch.FloatTensor(labels.tolist())
+
+    def __getitem__(self, index):#返回的是tensor
+        return self.trainset[index], self.labels[index]
+
+    def __len__(self):
+        return len(self.labels)
+
+
 class Generate:
 
     def __init__(self,train,labels,batchsize=256,shuffle=True):
@@ -79,8 +91,20 @@ class Generate:
         return train_x,train_y
 
 
+def cal_mean(results,mean_type):
 
+    if mean_type == 'geo_mean':
+        test_predicts = np.ones(results[0].shape)
+        for fold_predict in results:
+            test_predicts *= fold_predict
+        test_predicts **= (1. / len(results))
+    elif mean_type == 'arith_mean':
+        test_predicts = np.zeros(results[0].shape)
+        for fold_predict in results:
+            test_predicts += fold_predict
+        test_predicts /= len(results)
 
+    return test_predicts
 
 # class GenerateDataLoader()
 

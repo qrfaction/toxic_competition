@@ -1,12 +1,3 @@
-from keras.layers import Conv1D
-from keras.layers import add
-from keras.layers.pooling import MaxPool1D
-import prepocess
-import input
-from keras.layers.advanced_activations import PReLU
-from keras.layers.merge import concatenate
-import tool
-import numpy as np
 import torch.nn as nn
 import torch
 import torch.autograd as autograd
@@ -15,57 +6,6 @@ from tqdm import tqdm
 
 BATCHSIZE = 256
 
-def CnnBlock(name,input_layer,filters):
-    def Res_Inception(input_layer, filters, activate=True):
-        filters = int(filters / 4)
-        Ince_5 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(input_layer)
-        Ince_5 = Conv1D(filters=filters, kernel_size=3, strides=1, padding='same', activation='relu')(Ince_5)
-        Ince_5 = Conv1D(filters=filters, kernel_size=3, strides=1, padding='same')(Ince_5)
-        Ince_5 = PReLU()(Ince_5)
-
-        Ince_3 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(input_layer)
-        Ince_3 = Conv1D(filters=filters, kernel_size=3, strides=1, padding='same')(Ince_3)
-        Ince_3 = PReLU()(Ince_3)
-
-        Ince_pool = MaxPool1D(pool_size=3, strides=1, padding='same')(input_layer)
-        Ince_pool = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same')(Ince_pool)
-        Ince_pool = PReLU()(Ince_pool)
-
-        Ince_1 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same')(input_layer)
-        Ince_1 = PReLU()(Ince_1)
-
-        Ince = concatenate([Ince_3, Ince_5, Ince_pool, Ince_1], axis=-1)
-        if activate == True:
-            res_util = add([input_layer, Ince])
-            res_util = PReLU()(res_util)
-        else:
-            res_util = Ince
-        return res_util
-
-    def DenseNet(input_layer, filters ):
-        filters = int(filters / 4)
-        DBlock1 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(input_layer)
-        DBlock1 = concatenate([DBlock1, input_layer])
-        DBlock1 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(DBlock1)
-
-        DBlock2 = Res_Inception(DBlock1, filters, activate=False)
-        DBlock2 = concatenate([DBlock2, DBlock1, input_layer])
-        DBlock2 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(DBlock2)
-
-        DBlock3 = Res_Inception(DBlock2, filters, activate=False)
-        DBlock3 = concatenate([DBlock3, DBlock2, DBlock1, input_layer])
-        DBlock3 = Conv1D(filters=filters, kernel_size=1, strides=1, padding='same', activation='relu')(DBlock3)
-
-        DBlock4 = Res_Inception(DBlock3, filters, activate=False)
-        DBlock4 = concatenate([DBlock4, DBlock3, DBlock2, DBlock1])
-        DBlock4 = add([DBlock4,input_layer])
-
-        return DBlock4
-
-    if name=='res_inception':
-        return Res_Inception(input_layer,filters)
-    elif name=='DenseNet':
-        return DenseNet(input_layer,filters)
 
 class auc_loss(nn.Module):
     def __init__(self,batchsize=BATCHSIZE//2):
@@ -152,7 +92,7 @@ class baseNet(nn.Module):
 
 class DnnModle:
 
-    def __init__(self,dim, embedding_matrix,alpha=2,trainable=True):
+    def __init__(self,dim, embedding_matrix,alpha=2,trainable=True,loss = 'focal_loss'):
         super(DnnModle,self).__init__()
 
         self.basenet = baseNet(dim, embedding_matrix,trainable).cuda()
@@ -166,18 +106,17 @@ class DnnModle:
             ],
             lr=0.001,
         )
-        self.loss_f = auc_loss()
-        self.loss_f2 = focallogloss(alpha=alpha)
 
-    def fit(self,X,Y,loss='celoss'):
-        comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()).cuda())
+        if loss == 'focalLoss':
+            self.loss_f = focallogloss(alpha=alpha)
+        elif loss =='aucLoss':
+            self.loss_f = auc_loss()
 
-        Y = torch.autograd.Variable(torch.FloatTensor(Y.tolist()).cuda())
+    def fit(self,X,Y):
+        comment = torch.autograd.Variable(X.cuda())
+        Y = torch.autograd.Variable(Y.cuda())
         y_pred = self.basenet(comment)
-        if loss == 'celoss':
-            loss = self.loss_f2(y_pred,Y)
-        elif loss == 'auc loss':
-            loss = self.loss_f(y_pred,Y)
+        loss = self.loss_f(y_pred,Y)
         print(loss)
         self.optimizer.zero_grad()
         loss.backward()
@@ -185,11 +124,12 @@ class DnnModle:
 
 
     def predict(self,X,batchsize=256):
-        comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()).cuda(), volatile=True)
+        comment = torch.autograd.Variable(torch.LongTensor(X.cuda(), volatile=True))
         y_pred = torch.zeros((len(comment),6)).cuda()
         for i in tqdm(range(0,len(comment),batchsize)):
             y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize]).data
         return y_pred.cpu().numpy()
+
 
 
 
