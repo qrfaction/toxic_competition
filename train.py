@@ -53,8 +53,8 @@ def _train_model(model,train_x, train_y, val_x, val_y,batchsize = 256,frequecy =
     iter = 1
     best_score = -1
     while True:
-        for samples_x,samples_y in loader:
-            model.fit(samples_x,samples_y)
+        for samples_x,samples_f,samples_y in loader:
+            model.fit(samples_x,samples_f,samples_y)
             # evaulate
             if iter % frequecy ==0:
                 y_pred = model.predict(val_x)
@@ -82,7 +82,7 @@ def train(maxlen=200):
         input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
     embedding_matrix = embedding_matrix['crawl']
 
-    getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=True,alpha = 2,loss='focal_loss')
+    getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=True,alpha = 3,loss='focalLoss')
 
     cv(getmodel,trainset,labels,testset,outputfile='baseline.csv.gz',K=6)
 

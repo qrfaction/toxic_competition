@@ -107,10 +107,10 @@ def cleanComment(comments):
     for comment in tqdm(comments):
 
         comment = comment.lower()
+        # 去除邮箱    邮箱先去 再去IP
+        comment = re.sub(patternEmail, ' ', comment)
         # 去除IP
         comment = re.sub(patternIP, " ", comment)
-        # 去除邮箱
-        comment = re.sub(patternEmail,' ',comment)
         # 去除usernames
         comment = re.sub("\[\[.*\]", " ", comment)
         # 去除网址
@@ -227,8 +227,9 @@ def splitTarget(filename):
     labels=input.read_dataset(filename,list_classes)
     labels.to_csv(PATH+'labels.csv',index=False)
 
-def pipeline():
-    file = ['train.csv','test.csv','train_fr.csv','train_es.csv','train_de.csv']
+def pipeline(
+        file =('train.csv','test.csv','train_fr.csv','train_es.csv','train_de.csv')
+    ):
     for filename in tqdm(file):
         dataset = input.read_dataset(filename)
         dataset.fillna(UNKONW,inplace=True)

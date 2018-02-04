@@ -33,7 +33,7 @@ def bagging():
         'gloveGRU1.csv.gz':4,
         'kernel.csv.gz':26,
         # 'kernel2.csv.gz':10,
-        'focalloss.csv.gz':10,
+        'focalloss19.csv.gz':10,
     }
     output = pd.read_csv(PATH + 'GRU1.csv.gz')
     output[list_classes] = 0

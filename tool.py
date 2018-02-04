@@ -3,6 +3,7 @@ import random
 from torch.utils.data import Dataset
 import torch
 
+
 def splitdata(index_train,dataset):
     train_x={}
     for key in dataset.keys():
@@ -15,8 +16,10 @@ class CommentData(torch.utils.data.Dataset):
         self.trainset = torch.LongTensor(trainset['comment'].tolist())
         self.labels = torch.FloatTensor(labels.tolist())
 
+        self.features = torch.FloatTensor(trainset['countFeature'].tolist())
+
     def __getitem__(self, index):#返回的是tensor
-        return self.trainset[index], self.labels[index]
+        return self.trainset[index],self.features[index], self.labels[index]
 
     def __len__(self):
         return len(self.labels)
@@ -104,12 +107,12 @@ def cal_mean(results,mean_type,scores=None):
 
     if mean_type == 'geo_mean':
         test_predicts = np.ones(results[0].shape)
-        for fold_predict,weight in results,weights:
+        for fold_predict,weight in zip(results,weights):
             test_predicts *= (fold_predict**weight)
         test_predicts **= (1. / np.sum(weights))
     elif mean_type == 'arith_mean':
         test_predicts = np.zeros(results[0].shape)
-        for fold_predict,weight in results,weights:
+        for fold_predict,weight in zip(results,weights):
             test_predicts += (fold_predict * weight)
         test_predicts /= np.sum(weights)
 

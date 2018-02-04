@@ -72,9 +72,11 @@ class baseNet(nn.Module):
             bidirectional=True,
         )
 
-        self.fc = nn.Linear(64,6)
+        self.fc = nn.Linear(68,6)
 
-    def forward(self,sentences):
+        self.fc2 = nn.Linear(2,4)
+
+    def forward(self,sentences,features):
 
         x = self.embedding(sentences)
         hidden = autograd.Variable(torch.zeros(2,x.size()[0],128)).cuda()
@@ -84,6 +86,9 @@ class baseNet(nn.Module):
         x,hn = self.GRU2(x,hidden)
         y = hn[0,:,:] + hn[1,:,:]
         y = y.squeeze()
+        features =self.fc2(features)
+        features = nn.functional.sigmoid(features)
+        y = torch.cat((y,features),1)
         y = self.fc(y)
         y = nn.functional.sigmoid(y)
         return y
@@ -92,17 +97,18 @@ class baseNet(nn.Module):
 
 class DnnModle:
 
-    def __init__(self,dim, embedding_matrix,alpha=2,trainable=True,loss = 'focal_loss'):
+    def __init__(self,dim, embedding_matrix,alpha=2,trainable=True,loss = 'focalLoss'):
         super(DnnModle,self).__init__()
 
-        self.basenet = baseNet(dim, embedding_matrix,trainable).cuda()
+        self.basenet = nn.DataParallel(baseNet(dim, embedding_matrix,trainable)).cuda()
 
         self.optimizer = torch.optim.RMSprop(
             [
-                {'params': self.basenet.GRU1.parameters()},
-                {'params': self.basenet.GRU2.parameters()},
-                {'params': self.basenet.fc.parameters()},
-                {'params':self.basenet.embedding.parameters() ,'lr':1e-5},
+                {'params': self.basenet.module.GRU1.parameters()},
+                {'params': self.basenet.module.GRU2.parameters()},
+                {'params': self.basenet.module.fc.parameters()},
+                {'params': self.basenet.module.fc2.parameters()},
+                {'params':self.basenet.module.embedding.parameters() ,'lr':1e-5},
             ],
             lr=0.001,
         )
@@ -112,10 +118,11 @@ class DnnModle:
         elif loss =='aucLoss':
             self.loss_f = auc_loss()
 
-    def fit(self,X,Y):
+    def fit(self,X,features,Y):
         comment = torch.autograd.Variable(X.cuda())
         Y = torch.autograd.Variable(Y.cuda())
-        y_pred = self.basenet(comment)
+        features = torch.autograd.Variable(features.cuda())
+        y_pred = self.basenet(comment,features)
         loss = self.loss_f(y_pred,Y)
         print(loss)
         self.optimizer.zero_grad()
@@ -123,11 +130,12 @@ class DnnModle:
         self.optimizer.step()
 
 
-    def predict(self,X,batchsize=256):
-        comment = torch.autograd.Variable(torch.LongTensor(X.cuda(), volatile=True))
+    def predict(self,X,batchsize=2048):
+        comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()).cuda(), volatile=True)
+        features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()).cuda(),volatile=True)
         y_pred = torch.zeros((len(comment),6)).cuda()
         for i in tqdm(range(0,len(comment),batchsize)):
-            y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize]).data
+            y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize],features[i:i+batchsize]).data
         return y_pred.cpu().numpy()
 
 

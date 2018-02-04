@@ -15,25 +15,27 @@ UNKONW=' _UNK_ '
 usecols = [
     'comment_text',
     ##count feature
-    'total_length',
-    'capitals',
-    'caps_vs_length',
-    'num_exclamation_marks',
-    'num_question_marks',
-    'num_punctuation',
-    'num_symbols',
-    'num_words',
-    'num_unique_words',
-    'words_vs_unique',
-    'num_smilies',
-    'count_word',
-    'count_unique_word',
-    "count_punctuations",
-    "count_stopwords",
-    "mean_word_len",
-    'word_unique_percent',
-    'punct_percent',
+    # 'total_length',
+    # 'capitals',
+    # 'caps_vs_length',
+    # 'num_exclamation_marks',
+    # 'num_question_marks',
+    # 'num_punctuation',
+    # 'num_symbols',
+    # 'num_words',
+    # 'num_unique_words',
+    # 'words_vs_unique',
+    # 'num_smilies',
+    # 'count_word',
+    # 'count_unique_word',
+    # "count_punctuations",
+    # "count_stopwords",
+    # "mean_word_len",
+    # 'word_unique_percent',
+    # 'punct_percent',
 
+    'toxicity_level',
+    'attack_level',
     ## leaky feature
     # 'ip',
     # 'count_ip',
@@ -46,13 +48,12 @@ usecols = [
 ]
 
 
-def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('crawl',300),),dimension=300):
+def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('crawl',300),)):
     """
 
     :param maxlen: 句子最大长度
     :param trainfile: 使用哪个训练集版本(有多种语言翻译后的版本)
     :param wordvecfile: 使用哪个词向量
-    :param dimension: 词向量维度
     :return: 清洗完的训练集 ,测试集 ,标签 ,词向量矩阵
     """
 

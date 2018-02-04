@@ -604,7 +604,12 @@ APPO = {
     'guidelines.for':'guidelines . for',
     'fvck':'fuck',
 
-
+    ');':'):',
+    ';)':':)',
+    ';d':':d',
+    ';-)':':-)',
+    ';p':':p',
+    'd:':':d',
     'youssef':NAME,
     'ghobrial':NAME,
 
