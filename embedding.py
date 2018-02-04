@@ -5,8 +5,6 @@ import multiprocessing as mlp
 import input
 from nltk.tokenize import TweetTokenizer
 
-
-
 def tokenize_worker(sentences):
     tknzr = TweetTokenizer()
     sentences = [tknzr.tokenize(seq) for seq in tqdm(sentences)]
