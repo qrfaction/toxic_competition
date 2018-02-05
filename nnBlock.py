@@ -72,9 +72,9 @@ class baseNet(nn.Module):
             bidirectional=True,
         )
 
-        self.fc = nn.Linear(68,6)
+        self.fc = nn.Linear(72,6)
 
-        self.fc2 = nn.Linear(2,4)
+        self.fc2 = nn.Linear(4,8)
 
     def forward(self,sentences,features):
 

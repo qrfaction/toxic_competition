@@ -1,7 +1,6 @@
 import prepocess
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
-
 PATH = 'data/'
 
 def Sanitize():
@@ -41,6 +40,7 @@ def Tfidfize(df):
     return tfidf, tfidfer
 
 def train(trainfile,target):
+    from Ref_Data import replace_word
     dataset = pd.read_csv(PATH+trainfile)
     dataset.dropna(inplace=True)
     print(dataset.shape)
@@ -59,8 +59,8 @@ def train(trainfile,target):
 
     train_orig = pd.read_csv('data/clean_train.csv')
     test_orig = pd.read_csv('data/clean_test.csv')
-    train_orig['comment_text']=train_orig['comment_text'].fillna('_unknow_')
-    test_orig['comment_text'] = test_orig['comment_text'].fillna('_unknow_')
+    train_orig['comment_text']=train_orig['comment_text'].fillna(replace_word['unknow'])
+    test_orig['comment_text'] = test_orig['comment_text'].fillna(replace_word['unknow'])
 
     tfidf_train = tfidfer.transform(train_orig['comment_text'])
     tfidf_test = tfidfer.transform(test_orig['comment_text'])
@@ -78,7 +78,14 @@ def train(trainfile,target):
 if __name__ == '__main__':
     Sanitize()
     train('clean_attack_annotated_comments.csv','attack')
+    train('clean_attack_annotated_comments.csv', 'quoting_attack')
+    train('clean_attack_annotated_comments.csv', 'recipient_attack')
+    train('clean_attack_annotated_comments.csv', 'third_party_attack')
+    train('clean_attack_annotated_comments.csv', 'other_attack')
+
     train('clean_toxicity_annotated_comments.csv', 'toxicity')
+    train('clean_toxicity_annotated_comments.csv', 'toxicity_score')
+
 
 
 

@@ -10,14 +10,18 @@ def post_deal():
 
     a.to_csv("test.csv.gz", index=False, compression='gzip')
 
-def cal_mean():
-    from sklearn.cross_validation import KFold
-
-    labels= pd.read_csv(PATH+'labels.csv')
-
-    weight = labels.sum()
-    weight = labels.shape[0] / weight
-    print(weight)
+def get_corr():
+    usecol = [
+        'toxicity_score_level',
+        'quoting_attack_level',
+        'recipient_attack_level',
+        'third_party_attack_level',
+        'other_attack_level',
+        'toxicity_level',
+        'attack_level',
+    ]
+    dataset = pd.read_csv(PATH+'clean_train.csv',usecols=usecol)
+    print(dataset.corr())
 
 
 
@@ -26,14 +30,14 @@ def bagging():
 
     PATH = 'results/'
     file_weight = {
-        'GRU1.csv.gz':6,
-        'GRU2.csv.gz':6,
-        'GRU3.csv.gz':6,
-        'frGRU1.csv.gz':4,
-        'gloveGRU1.csv.gz':4,
+        # 'GRU1.csv.gz':6,
+        # 'GRU2.csv.gz':6,
+        # 'GRU3.csv.gz':6,
+        # 'frGRU1.csv.gz':4,
+        # 'gloveGRU1.csv.gz':4,
         'kernel.csv.gz':26,
         # 'kernel2.csv.gz':10,
-        'focalloss19.csv.gz':10,
+        # 'focalloss19.csv.gz':10,
     }
     output = pd.read_csv(PATH + 'GRU1.csv.gz')
     output[list_classes] = 0
@@ -52,3 +56,4 @@ def bagging():
 # cal_mean()
 # post_deal()
 bagging()
+# get_corr()

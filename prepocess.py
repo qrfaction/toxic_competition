@@ -1,103 +1,46 @@
-import numpy as np
 import time
 import warnings
-import string
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
 from Ref_Data import APPO
+from Ref_Data import replace_word
 import input
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
+import createFeature
 
 warnings.filterwarnings("ignore")
 PATH='data/'
-UNKONW=' _UNK_ '
-NUM = ' _NUM_ '
-SHUABING = ' _SHUABING_ '
+
 
 eng_stopwords = set(stopwords.words("english"))
 lem = WordNetLemmatizer()
-
-
-def CreateFeature(dataset):
-
-    def CountFeatures(df):
-        # 句子长度
-        df['total_length'] = df['comment_text'].apply(len)
-
-        # 大写字母个数
-        df['capitals'] = df['comment_text'].apply(lambda comment: sum(1 for c in comment if c.isupper()))
-        df['caps_vs_length'] = df.apply(lambda row: float(row['capitals']) / float(row['total_length']),
-                                        axis=1)
-        df['num_exclamation_marks'] = df['comment_text'].apply(lambda comment: comment.count('!'))
-        df['num_question_marks'] = df['comment_text'].apply(lambda comment: comment.count('?'))
-        df['num_punctuation'] = df['comment_text'].apply(
-            lambda comment: sum(comment.count(w) for w in '.,;:'))
-        df['num_symbols'] = df['comment_text'].apply(
-            lambda comment: sum(comment.count(w) for w in '*&$%'))
-        df['num_words'] = df['comment_text'].apply(lambda comment: len(comment.split()))
-        df['num_unique_words'] = df['comment_text'].apply(
-            lambda comment: len(set(w for w in comment.split())))
-        df['words_vs_unique'] = df['num_unique_words'] / df['num_words']
-        df['num_smilies'] = df['comment_text'].apply(
-            lambda comment: sum(comment.count(w) for w in (':-)', ':)', ';-)', ';)')))
-
-        df['count_word'] = df["comment_text"].apply(lambda x: len(str(x).split()))
-        df['count_unique_word'] = df["comment_text"].apply(lambda x: len(set(str(x).split())))
-        df["count_punctuations"] = df["comment_text"].apply(
-            lambda x: len([c for c in str(x) if c in string.punctuation]))
-        df["count_stopwords"] = df["comment_text"].apply(
-            lambda x: len([w for w in str(x).lower().split() if w in eng_stopwords]))
-        df["mean_word_len"] = df["comment_text"].apply(lambda x: np.mean([len(w) for w in str(x).split()]))
-
-        # derived features
-        # 2个：非重复词占比、标点占比
-        df['word_unique_percent'] = df['count_unique_word'] * 100 / df['count_word']
-        df['punct_percent'] = df['count_punctuations'] * 100 / df['count_word']
-
-        return df
-
-    def LeakyFeatures(df):
-        patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
-        patternIP = '\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}'
-
-        ## Leaky features——共8个特征
-        df['ip'] = df["comment_text"].apply(lambda x: re.findall(patternIP, str(x)))
-        df['count_ip'] = df["ip"].apply(lambda x: len(x))
-        df['link'] = df["comment_text"].apply(lambda x: re.findall(patternLink, str(x)))
-        df['count_links'] = df["link"].apply(lambda x: len(x))
-        df['article_id'] = df["comment_text"].apply(lambda x: re.findall("\d:\d\d\s{0,5}$", str(x)))
-        df['article_id_flag'] = df.article_id.apply(lambda x: len(x))
-        df['username'] = df["comment_text"].apply(lambda x: re.findall("\[\[User(.*)\|", str(x)))
-        df['count_usernames'] = df["username"].apply(lambda x: len(x))
-
-        return df
-
-    def deal_space(comment):
-
-        comment = re.sub("\\n+", ".", comment)
-
-        comment = re.sub("\.{2,}", ' . ', comment)
-
-        comment = re.sub("\s+", " ", comment)
-
-        return comment
-
-    dataset["comment_text"] = dataset["comment_text"].apply(deal_space)
-    dataset = CountFeatures(dataset)
-    dataset = LeakyFeatures(dataset)
-
-    return dataset
 
 def cleanComment(comments):
     """
     This function receives comments and returns clean word-list
     """
+    def correct_typos(comment):
+        comment = re.sub('(f u c k)', ' fuck ', comment)
+        comment = re.sub('( f you)',' fuck you ',comment)
+        comment = re.sub('(f u c k e r)', ' fucker ', comment)
+        comment = re.sub('( ass monkey)', ' asshole ', comment)
+        comment = re.sub('( a s s)',' ass ',comment)
+        comment = re.sub('( w t f)',' wtf ',comment)
+        comment = re.sub('( s t f u)',' stfu ' ,comment)
+        pattern = '(motha fuker)|(motha fucker)|(motha fukkah)|(motha fukker)|(mother fucker)|(mother fukah)|(mother fuker)|(mother fukkah)|(mother fukker)|'
+        pattern +='(mutha fucker)|(mutha fukah)|(mutha fuker)|(mutha fukkah)|(mutha fukker)'
+        comment = re.sub(pattern,' motherfucker ',comment)
+        comment = re.sub('( b!\+ch)|( b!tch)|( bi\+ch)',' bitch ',comment)
+        comment = re.sub('( s\.o\.b\.)|( s\.o\.b)',' sob ',comment)
+        comment = re.sub('( sh!t)|( shi\+)|( sh!\+)',' shit ',comment)
+        comment = re.sub('( blow job)','blowjob',comment)
+
+        return comment
+
     patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
     patternIP = '\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}'
-    patternEmail = '^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$'
+    patternEmail = '[A-Za-z\d]+([-_.][A-Za-z\d]+)*@([A-Za-z\d]+[-.])+[A-Za-z\d]{2,4}'
 
     from nltk.tokenize import TweetTokenizer
     tknzr = TweetTokenizer()
@@ -108,6 +51,8 @@ def cleanComment(comments):
 
         comment = comment.lower()
         # 去除邮箱    邮箱先去 再去IP
+
+
         comment = re.sub(patternEmail, ' ', comment)
         # 去除IP
         comment = re.sub(patternIP, " ", comment)
@@ -115,11 +60,15 @@ def cleanComment(comments):
         comment = re.sub("\[\[.*\]", " ", comment)
         # 去除网址
         comment = re.sub(patternLink, " ", comment)
+        comment = correct_typos(comment)
         # 去除非ascii字符
         comment = re.sub("[^\x00-\x7F]+", " ", comment)
-        comment = re.sub("(\d+\.\d+)",NUM,comment)
+        comment = re.sub("(\d+\.\d+)",replace_word['num'],comment)
         comment = re.sub("\.+", ' . ', comment)            #帮助分词
         comment = re.sub('[\|=*/\`\~\\\\\}\{]+', ' ', comment)
+
+
+
         # 分词
         words = tknzr.tokenize(comment)
 
@@ -131,7 +80,7 @@ def cleanComment(comments):
         # 数字统一
         for i in range(len(words)):
             if words[i].isdigit() and words[i]!='911':
-                words[i] = NUM
+                words[i] = replace_word['num']
 
         words = [w for w in words if w not in eng_stopwords]
         comment = " ".join(words)
@@ -142,6 +91,7 @@ def cleanComment(comments):
         comment = re.sub('\s+',' ',comment)
         comment = re.sub('(\. )+',' . ',comment)
         comment = re.sub('(\. \.)+',' . ',comment)
+        comment = re.sub('("")+', ' ', comment)
 
         # 纠正拼写错误
         # for word,pos in tknzr(comment):
@@ -178,62 +128,21 @@ def clean_dataset(dataset,filename):
 
     dataset.to_csv(PATH+filename,index=False)
 
-def getTfidfVector(clean_corpus):
-    '''
-    TF-IDF Vectorizer
-    '''
-    ### 单个词 ###
-    tfv = TfidfVectorizer(min_df=100,  max_features=100000, 
-                strip_accents='unicode', analyzer='word',ngram_range=(1,1),
-                use_idf=1,smooth_idf=1,sublinear_tf=1,
-                stop_words = 'english')
-    tfv.fit(clean_corpus)
-#    features = np.array(tfv.get_feature_names())
-    
-    train_unigrams =  tfv.transform(clean_corpus.iloc[:train.shape[0]])
-#    test_unigrams = tfv.transform(clean_corpus.iloc[train.shape[0]:])
-    
-    print("total time till unigrams",time.time()-start_time)
-    
-    ### 两个词 ###
-    tfv = TfidfVectorizer(min_df=100,  max_features=30000, 
-                strip_accents='unicode', analyzer='word',ngram_range=(2,2),
-                use_idf=1,smooth_idf=1,sublinear_tf=1,
-                stop_words = 'english')
-    
-    tfv.fit(clean_corpus)
-#    features = np.array(tfv.get_feature_names())
-    train_bigrams =  tfv.transform(clean_corpus.iloc[:train.shape[0]])
-#    test_bigrams = tfv.transform(clean_corpus.iloc[train.shape[0]:])
-    
-    print("total time till bigrams",time.time()-start_time)
-    
-    ### 长度为4的字符 ###
-    tfv = TfidfVectorizer(min_df=100,  max_features=30000, 
-                strip_accents='unicode', analyzer='char',ngram_range=(1,4),
-                use_idf=1,smooth_idf=1,sublinear_tf=1,
-                stop_words = 'english')
-    
-    tfv.fit(clean_corpus)
-#    features = np.array(tfv.get_feature_names())
-    train_charngrams =  tfv.transform(clean_corpus.iloc[:train.shape[0]])
-#    test_charngrams = tfv.transform(clean_corpus.iloc[train.shape[0]:])
 
-    
-    return train_bigrams,train_charngrams,train_unigrams
 
 def splitTarget(filename):
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
     labels=input.read_dataset(filename,list_classes)
     labels.to_csv(PATH+'labels.csv',index=False)
 
+
 def pipeline(
         file =('train.csv','test.csv','train_fr.csv','train_es.csv','train_de.csv')
     ):
     for filename in tqdm(file):
         dataset = input.read_dataset(filename)
-        dataset.fillna(UNKONW,inplace=True)
-        dataset = CreateFeature(dataset)
+        dataset.fillna(replace_word['unknow'],inplace=True)
+        dataset = createFeature.countFeature(dataset)
         clean_dataset(dataset,'clean_'+filename)
 
 

@@ -1,4 +1,3 @@
-from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 import numpy as np
 import multiprocessing as mlp
@@ -10,24 +9,24 @@ def tokenize_worker(sentences):
     sentences = [tknzr.tokenize(seq) for seq in tqdm(sentences)]
     return sentences
 
+def tokenize_word(sentences):
+    " 多进程分词"
+    results = []
+    pool = mlp.Pool(mlp.cpu_count())
+    aver_t = int(len(sentences)/ mlp.cpu_count()) + 1
+    for i in range(mlp.cpu_count()):
+        result = pool.apply_async(tokenize_worker,args=(sentences[i * aver_t:(i + 1) * aver_t],))
+        results.append(result)
+    pool.close()
+    pool.join()
+
+    tokenized_sentences = []
+    for result in results:
+        tokenized_sentences.extend(result.get())
+
+    return tokenized_sentences
+
 def tokenize_sentences(sentences):
-
-    def step_tokenize(sentences):
-        " 多进程分词"
-        results = []
-        pool = mlp.Pool(mlp.cpu_count())
-        aver_t = int(len(sentences)/ mlp.cpu_count()) + 1
-        for i in range(mlp.cpu_count()):
-            result = pool.apply_async(tokenize_worker,args=(sentences[i * aver_t:(i + 1) * aver_t],))
-            results.append(result)
-        pool.close()
-        pool.join()
-
-        tokenized_sentences = []
-        for result in results:
-            tokenized_sentences.extend(result.get())
-
-        return tokenized_sentences
 
     def step_cal_frequency(sentences):
         frequency = {}
@@ -57,7 +56,7 @@ def tokenize_sentences(sentences):
             lenseq[len(seq)] +=1
         return seq_list,words_dict,frequency
 
-    sentences = step_tokenize(sentences)
+    sentences = tokenize_word(sentences)
     freq = step_cal_frequency(sentences)
     return step_to_seq(sentences,freq)
 

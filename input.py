@@ -2,6 +2,7 @@ import numpy as np
 from tqdm import tqdm
 import pandas as pd
 import embedding
+from Ref_Data import replace_word
 
 PATH='data/'
 wordvec={
@@ -10,7 +11,6 @@ wordvec={
     'crawl':PATH+'crawl-300d-2M.vec',
     'word2vec':PATH+'word2vec.txt'
 }
-UNKONW=' _UNK_ '
 
 usecols = [
     'comment_text',
@@ -34,8 +34,14 @@ usecols = [
     # 'word_unique_percent',
     # 'punct_percent',
 
-    'toxicity_level',
-    'attack_level',
+    'toxicity_score_level',
+    'quoting_attack_level',
+    # 'recipient_attack_level',
+    'third_party_attack_level',
+    'other_attack_level',
+    # 'toxicity_level',
+    # 'attack_level',
+
     ## leaky feature
     # 'ip',
     # 'count_ip',
@@ -61,8 +67,8 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('crawl',300)
 
     labels =read_dataset('labels.csv').values
 
-    train['comment_text'].fillna(UNKONW, inplace=True)
-    test['comment_text'].fillna(UNKONW, inplace=True)
+    train['comment_text'].fillna(replace_word['unknow'], inplace=True)
+    test['comment_text'].fillna(replace_word['unknow'], inplace=True)
     text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
 
     from keras.preprocessing.sequence import pad_sequences

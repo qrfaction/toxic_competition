@@ -1,0 +1,37 @@
+                          attack_level  toxicity_level  quoting_attack_level  \
+attack_level                  1.000000        0.958742              0.441441   
+toxicity_level                0.958742        1.000000              0.414402   
+quoting_attack_level          0.441441        0.414402              1.000000   
+recipient_attack_level        0.968263        0.926660              0.368985   
+third_party_attack_level      0.781943        0.755982              0.438268   
+other_attack_level            0.798075        0.775107              0.423058   
+toxicity_score_level         -0.913592       -0.945711             -0.381424   
+
+                          recipient_attack_level  third_party_attack_level  \
+attack_level                            0.968263                  0.781943   
+toxicity_level                          0.926660                  0.755982   
+quoting_attack_level                    0.368985                  0.438268   
+recipient_attack_level                  1.000000                  0.644662   
+third_party_attack_level                0.644662                  1.000000   
+other_attack_level                      0.687379                  0.643942   
+toxicity_score_level                   -0.884504                 -0.718294   
+
+				other_attack_level  toxicity_score_level  
+				0.798075             -0.913592  
+				0.775107             -0.945711  
+				0.423058             -0.381424  
+				0.687379             -0.884504  
+				0.643942             -0.718294  
+				1.000000             -0.738129  
+				-0.738129              1.000000  
+toxicity_level  与 attack_level 与 recipient_attack_level 与 toxicity_score_level留一个
+
+(115860, 6)
+0.026822542612367675
+(115860, 6)
+0.0008379535474395025
+(115860, 6)
+0.02106255536231257
+(115860, 6)
+0.00649015511029034
+
