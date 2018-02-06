@@ -5,6 +5,8 @@ from nltk.corpus import stopwords
 import numpy as np
 import multiprocessing as mlp
 from tqdm import tqdm
+from gensim.matutils import corpus2csc
+from Ref_Data import replace_word
 PATH = 'data/'
 
 def countFeature(dataset):
@@ -124,15 +126,16 @@ def getTfidfVector(train,test):
 def doc2bow(text,dictionary):
     return [dictionary.doc2bow(t) for t in tqdm(text)]
 
+def lda_infer(dataset,model):
+    topic_probability_mat = model[dataset]
+    return corpus2csc(topic_probability_mat).transpose().toarray().tolist()
 
-
-def LDAFeature(num_topics=20):
+def LDAFeature(num_topics=6):
     from embedding import tokenize_word
     from gensim.corpora import Dictionary
-    from gensim.matutils import corpus2csc
     from gensim.models.ldamulticore import LdaMulticore
 
-    def get_corpus(dictionary):
+    def get_corpus(dictionary,text):
         results = []
         pool = mlp.Pool(mlp.cpu_count())
 
@@ -149,8 +152,26 @@ def LDAFeature(num_topics=20):
             corpus.extend(result.get())
         return corpus
 
+    def inference(model,dataset):
+        results = []
+        pool = mlp.Pool(mlp.cpu_count())
+
+        aver_t = int(len(dataset) / mlp.cpu_count()) + 1
+        for i in range(mlp.cpu_count()):
+            result = pool.apply_async(lda_infer, args=(dataset[i * aver_t: (i + 1) * aver_t],model))
+            results.append(result)
+        pool.close()
+        pool.join()
+
+        topics = []
+        for result in results:
+            topics.extend(result.get())
+        return np.array(topics)
+
     train = input.read_dataset('clean_train.csv')
     test = input.read_dataset('clean_test.csv')
+    train['comment_text'] = train['comment_text'].fillna(replace_word['unknow'])
+    test['comment_text'] = test['comment_text'].fillna(replace_word['unknow'])
     text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
 
     text = tokenize_word(text)
@@ -167,28 +188,35 @@ def LDAFeature(num_topics=20):
 
     dictionary = Dictionary(text)     # 生成 (id,word) 字典
 
-    corpus = get_corpus(dictionary)
+    corpus = get_corpus(dictionary,text)
+    print(len(corpus),len(corpus[0]))
     print('begin train lda')
     ldamodel = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary)
 
     print('inference')
-    topic_probability_mat = ldamodel[corpus]
+    topic_probability_mat = inference(ldamodel,corpus)
+    print(len(topic_probability_mat),len(topic_probability_mat[0]))
+
+    train_sparse = topic_probability_mat[:train.shape[0]]
+    test_sparse = topic_probability_mat[train.shape[0]:]
 
 
-    train_matrix = topic_probability_mat[:train.shape[0]]
-    test_matrix = topic_probability_mat[train.shape[0]:]
 
-    train_sparse = corpus2csc(train_matrix).transpose().toarray()
-    test_sparse = corpus2csc(test_matrix).transpose().toarray()
-
-    effective_section = {}
+    # 计算有效成分有多少
+    zero_section = {}
     for topics in tqdm(train_sparse):
         num = np.sum(topics==0)
         num =str(int(num))
-        if num not in effective_section:
-            effective_section[num] = 0
-        effective_section[num]+=1
-    print(effective_section)
+        if num not in zero_section:
+            zero_section[num] = 0
+        zero_section[num]+=1
+    for topics in tqdm(test_sparse):
+        num = np.sum(topics==0)
+        num =str(int(num))
+        if num not in zero_section:
+            zero_section[num] = 0
+        zero_section[num]+=1
+    print(zero_section)
 
 
     print('save')

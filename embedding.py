@@ -35,6 +35,10 @@ def tokenize_sentences(sentences):
                 if frequency.get(word) is None:
                     frequency[word] = 0
                 frequency[word]+=1
+        import json
+        all_word_frequency = sorted(frequency.items(), key=lambda item: item[1], reverse=True)
+        with open('allWordFrequency.json', 'w') as f:
+            f.write(json.dumps(all_word_frequency, indent=4, separators=(',', ': ')))
         return frequency
 
     def step_to_seq(sentences,frequency):

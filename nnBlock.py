@@ -56,6 +56,7 @@ class baseNet(nn.Module):
             padding_idx=0,
         )
         self.embedding.weight = nn.Parameter(torch.FloatTensor(embedding_matrix),requires_grad=trainable)
+        self.dropout = nn.Dropout(p=0.3)
         self.GRU1 = nn.GRU(
             input_size=dim,
             hidden_size=128,
@@ -72,13 +73,14 @@ class baseNet(nn.Module):
             bidirectional=True,
         )
 
-        self.fc = nn.Linear(72,6)
+        self.fc = nn.Linear(80,6)
 
-        self.fc2 = nn.Linear(4,8)
+        self.fc2 = nn.Linear(10,16)
 
     def forward(self,sentences,features):
 
         x = self.embedding(sentences)
+        x = self.dropout(x)
         hidden = autograd.Variable(torch.zeros(2,x.size()[0],128)).cuda()
         x,_ = self.GRU1(x,hidden)
         x = x[:,:,:128] + x[:,:,128:]
@@ -112,11 +114,14 @@ class DnnModle:
             ],
             lr=0.001,
         )
-
+        self.basenet.train()
+        
         if loss == 'focalLoss':
             self.loss_f = focallogloss(alpha=alpha)
         elif loss =='aucLoss':
             self.loss_f = auc_loss()
+        elif loss =='ceLoss':
+            self.loss_f = nn.BCELoss()
 
     def fit(self,X,features,Y):
         comment = torch.autograd.Variable(X.cuda())
@@ -131,11 +136,13 @@ class DnnModle:
 
 
     def predict(self,X,batchsize=2048):
+        self.basenet.eval()
         comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()).cuda(), volatile=True)
         features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()).cuda(),volatile=True)
         y_pred = torch.zeros((len(comment),6)).cuda()
         for i in tqdm(range(0,len(comment),batchsize)):
             y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize],features[i:i+batchsize]).data
+        self.basenet.train()
         return y_pred.cpu().numpy()
 
 

@@ -76,7 +76,7 @@ def train(trainfile,target):
 
 
 if __name__ == '__main__':
-    Sanitize()
+    # Sanitize()
     train('clean_attack_annotated_comments.csv','attack')
     train('clean_attack_annotated_comments.csv', 'quoting_attack')
     train('clean_attack_annotated_comments.csv', 'recipient_attack')

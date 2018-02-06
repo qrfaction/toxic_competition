@@ -34,12 +34,12 @@ usecols = [
     # 'word_unique_percent',
     # 'punct_percent',
 
-    'toxicity_score_level',
+    # 'toxicity_score_level',
     'quoting_attack_level',
     # 'recipient_attack_level',
     'third_party_attack_level',
     'other_attack_level',
-    # 'toxicity_level',
+    'toxicity_level',
     # 'attack_level',
 
     ## leaky feature
@@ -52,6 +52,7 @@ usecols = [
     # 'username',
     # 'count_usernames',
 ]
+usecols += ['topic' + str(i) for i in range(6)]
 
 
 def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('crawl',300),)):
@@ -82,23 +83,32 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('crawl',300)
     assert len(trainseq) == len(train)
     assert len(testseq) == len(test)
 
-    countF = usecols[1:]
+    normilze_feature = [
+        # 'toxicity_score_level',
+        'quoting_attack_level',
+        # 'recipient_attack_level',
+        'third_party_attack_level',
+        'other_attack_level',
+        'toxicity_level',
+        # 'attack_level',
+    ]
 
     dataset = train.append(test)
-    for col in countF:
+    for col in normilze_feature:
         train[col] = (train[col] - dataset[col].mean()) / dataset[col].std()
         test[col] = (test[col] - dataset[col].mean()) / dataset[col].std()
 
+    usecols.remove('comment_text')
     X={
         'comment':trainseq,
-        'countFeature':train[countF].values,
+        'countFeature':train[usecols].values,
         # 'tfidf1':tfidf_train[:,:128],
         # 'tfidf2': tfidf_train[:,128:256],
         # 'tfidf3': tfidf_train[:,256:],
     }
     testX={
         'comment':testseq,
-        'countFeature':test[countF].values,
+        'countFeature':test[usecols].values,
         # 'tfidf1':tfidf_test[:,:128],
         # 'tfidf2': tfidf_test[:,128:256],
         # 'tfidf3': tfidf_test[:,256:],

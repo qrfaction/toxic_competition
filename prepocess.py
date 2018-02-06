@@ -26,6 +26,7 @@ def cleanComment(comments):
         comment = re.sub('(f u c k e r)', ' fucker ', comment)
         comment = re.sub('( ass monkey)', ' asshole ', comment)
         comment = re.sub('( a s s)',' ass ',comment)
+        comment = re.sub('(a$$)', 'ass', comment)
         comment = re.sub('( w t f)',' wtf ',comment)
         comment = re.sub('( s t f u)',' stfu ' ,comment)
         pattern = '(motha fuker)|(motha fucker)|(motha fukkah)|(motha fukker)|(mother fucker)|(mother fukah)|(mother fuker)|(mother fukkah)|(mother fukker)|'
@@ -35,7 +36,12 @@ def cleanComment(comments):
         comment = re.sub('( s\.o\.b\.)|( s\.o\.b)',' sob ',comment)
         comment = re.sub('( sh!t)|( shi\+)|( sh!\+)',' shit ',comment)
         comment = re.sub('( blow job)','blowjob',comment)
-
+        comment = re.sub("( let's )",' let us ',comment)
+        comment = re.sub("('s )", ' is ', comment)
+        comment = re.sub("(fack you)|(fack u)",' fuck you ',comment)
+        comment = re.sub('(go fack)','go fuck',comment)
+        comment = re.sub('( \d\d:\d\d)',replace_word['num'],comment)
+        comment = re.sub('( anti-)', ' anti ', comment)
         return comment
 
     patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
@@ -65,9 +71,9 @@ def cleanComment(comments):
         comment = re.sub("[^\x00-\x7F]+", " ", comment)
         comment = re.sub("(\d+\.\d+)",replace_word['num'],comment)
         comment = re.sub("\.+", ' . ', comment)            #帮助分词
-        comment = re.sub('[\|=*/\`\~\\\\\}\{]+', ' ', comment)
-
-
+        comment = re.sub('[\|=\*/\`\~\\\\\}\{]+', ' ', comment)
+        comment = re.sub('[\"]+', ' " ', comment)
+        comment = re.sub('\'{2,}', ' " ', comment)
 
         # 分词
         words = tknzr.tokenize(comment)
@@ -77,23 +83,23 @@ def cleanComment(comments):
 
         # 提取词干
         words = [lem.lemmatize(word, "v") for word in words]
+
         # 数字统一
         for i in range(len(words)):
             if words[i].isdigit() and words[i]!='911':
                 words[i] = replace_word['num']
 
-        words = [w for w in words if w not in eng_stopwords]
+        # words = [w for w in words if w not in eng_stopwords]
         comment = " ".join(words)
 
-
         comment = comment.lower()
-        comment = re.sub('[\'\"]+',' " ',comment)
         comment = re.sub('\s+',' ',comment)
         comment = re.sub('(\. )+',' . ',comment)
         comment = re.sub('(\. \.)+',' . ',comment)
         comment = re.sub('("")+', ' ', comment)
 
-        # 纠正拼写错误
+
+        # 纠正拼写错误/
         # for word,pos in tknzr(comment):
         #     if w_dict.check(word) == False:
         #         try:
