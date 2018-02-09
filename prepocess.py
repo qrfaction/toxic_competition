@@ -150,8 +150,15 @@ def pipeline(
         dataset.fillna(replace_word['unknow'],inplace=True)
         dataset = createFeature.countFeature(dataset)
         clean_dataset(dataset,'clean_'+filename)
+    from ConvAIData import get_label_feature
+    get_label_feature()
+
+    from createFeature import LDAFeature
+    from Ref_Data import NUM_TOPIC
+    LDAFeature(NUM_TOPIC)
 
 
 
 if __name__ == "__main__":
+    splitTarget('train.csv')
     pipeline()

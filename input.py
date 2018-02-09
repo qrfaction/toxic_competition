@@ -2,16 +2,17 @@ import numpy as np
 from tqdm import tqdm
 import pandas as pd
 import embedding
-from Ref_Data import replace_word
+from Ref_Data import replace_word,PATH
 
-PATH='data/'
 wordvec={
     'glove42':PATH+'glove.42B.300d.txt',
     'glove840':PATH+'glove.840B.300d.txt',
     'crawl':PATH+'crawl-300d-2M.vec',
-    'word2vec':PATH+'word2vec.txt'
+    'word2vec':PATH+'word2vec.txt',
+    'fasttext':PATH+'wiki.en.bin',
 }
 
+# 使用哪些特征
 usecols = [
     'comment_text',
     ##count feature
@@ -52,10 +53,11 @@ usecols = [
     # 'username',
     # 'count_usernames',
 ]
-usecols += ['topic' + str(i) for i in range(6)]
+from Ref_Data import NUM_TOPIC
+usecols += ['topic' + str(i) for i in range(NUM_TOPIC)]
 
 
-def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('crawl',300),)):
+def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',300),)):
     """
 
     :param maxlen: 句子最大长度
@@ -74,7 +76,12 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('crawl',300)
 
     from keras.preprocessing.sequence import pad_sequences
     print('tokenize word')
-    sentences, word_index, frequency = embedding.tokenize_sentences(text)
+    print(wordvecfile[0])
+    if wordvecfile[0][0] == 'fasttext':
+        filter_word = False
+    else:
+        filter_word = True
+    sentences, word_index, frequency = embedding.tokenize_sentences(text,filter_word=filter_word)
     sentences = pad_sequences(sentences, maxlen=maxlen, truncating='post')
     sequences = np.array(sentences)
 
@@ -158,11 +165,8 @@ def deal_index(filename):
 
 def bin_to_text(filename,name):
     from gensim.models.keyedvectors import KeyedVectors
-    PATH = 'data/'
     model = KeyedVectors.load_word2vec_format(PATH+filename, binary=True)
     model.save_word2vec_format(PATH+name,binary=False)
-
-
 
 if __name__ == "__main__":
     # a=read_dataset('labels.csv')

@@ -101,7 +101,7 @@ def cal_mean(results,mean_type,scores=None):
     else :
         scores = np.array(scores)
         scores -= 0.98
-        scores *=10000
+        scores *= 10000
         weights = np.int64(scores)
         print(weights)
 

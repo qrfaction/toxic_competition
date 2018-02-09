@@ -3,6 +3,9 @@ import numpy as np
 import multiprocessing as mlp
 import input
 from nltk.tokenize import TweetTokenizer
+from fastText import load_model
+from Ref_Data import PATH
+
 
 def tokenize_worker(sentences):
     tknzr = TweetTokenizer()
@@ -26,7 +29,7 @@ def tokenize_word(sentences):
 
     return tokenized_sentences
 
-def tokenize_sentences(sentences):
+def tokenize_sentences(sentences,filter_word=True):
 
     def step_cal_frequency(sentences):
         frequency = {}
@@ -49,11 +52,12 @@ def tokenize_sentences(sentences):
         for sentence in tqdm(sentences):
             seq = []
             for word in sentence:
-                if frequency[word]>4:
-                    if word not in words_dict:
-                        words_dict[word] = len(words_dict)+1
-                    word_index = words_dict[word]
-                    seq.append(word_index)
+                if filter_word and frequency[word]<=4:
+                    continue
+                if word not in words_dict:
+                    words_dict[word] = len(words_dict)+1
+                word_index = words_dict[word]
+                seq.append(word_index)
             seq_list.append(seq)
             if len(seq) not in lenseq:
                 lenseq[len(seq)]=0
@@ -71,30 +75,33 @@ def get_wordvec(word_index,frequency,wordvecfiles):
     return vec_matrix
 
 def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
-
-    embeddings_index = input.read_wordvec(wordvecfile)
-
     print('get embedding matrix')
     num_words = len(word_index) + 1
-    # 未知单词用0  停止符用-1
+    # 停止符用0
     embedding_matrix = np.random.uniform(-0.25,0.25,size=(num_words,dimension))
-    embeddings_index[0] = 0
+    embedding_matrix[0] = 0
+    print('num of word: ',len(word_index))
+    if wordvecfile=='fasttext':
+        ft_model = load_model(PATH + 'wiki.en.bin')
+        for word, i in tqdm(word_index.items()):
+            embedding_matrix[i] = ft_model.get_word_vector(word).astype('float32')
+    else:
+        embeddings_index = input.read_wordvec(wordvecfile)
+        noword = {}
+        num_noword = 0
+        for word, i in tqdm(word_index.items()):
+            embedding_vector = embeddings_index.get(word)
+            if embedding_vector is None:
+                noword[word]=frequency[word]
+                num_noword+=1
+            else:
+                embedding_matrix[i] = embedding_vector
 
-    noword = {}
-    num_noword = 0
-    for word, i in tqdm(word_index.items()):
-        embedding_vector = embeddings_index.get(word)
-        if embedding_vector is None:
-            noword[word]=frequency[word]
-            num_noword+=1
-        else:
-            embedding_matrix[i] = embedding_vector
-
-    import json
-    noword = sorted(noword.items(),key=lambda item:item[1],reverse=True)
-    with open('test.json','w') as f:
-        f.write(json.dumps(noword,indent=4, separators=(',', ': ')))
-    print('miss:', num_noword)
+        import json
+        noword = sorted(noword.items(),key=lambda item:item[1],reverse=True)
+        with open('test.json','w') as f:
+            f.write(json.dumps(noword,indent=4, separators=(',', ': ')))
+        print('miss:', num_noword)
 
     return embedding_matrix
 

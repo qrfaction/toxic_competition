@@ -231,4 +231,5 @@ def LDAFeature(num_topics=6):
 
 
 if __name__ == '__main__':
-    LDAFeature()
+    from Ref_Data import NUM_TOPIC
+    LDAFeature(NUM_TOPIC)

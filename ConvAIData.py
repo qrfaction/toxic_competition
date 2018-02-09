@@ -1,7 +1,7 @@
 import prepocess
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
-PATH = 'data/'
+from Ref_Data import PATH
 
 def Sanitize():
     def JoinAndSanitize(cmt, annot):
@@ -73,11 +73,9 @@ def train(trainfile,target):
     train_orig.to_csv(PATH+'clean_train.csv', index=False)
     test_orig.to_csv(PATH+'clean_test.csv', index=False)
 
-
-
-if __name__ == '__main__':
-    # Sanitize()
-    train('clean_attack_annotated_comments.csv','attack')
+def get_label_feature():
+    Sanitize()
+    train('clean_attack_annotated_comments.csv', 'attack')
     train('clean_attack_annotated_comments.csv', 'quoting_attack')
     train('clean_attack_annotated_comments.csv', 'recipient_attack')
     train('clean_attack_annotated_comments.csv', 'third_party_attack')
@@ -85,6 +83,9 @@ if __name__ == '__main__':
 
     train('clean_toxicity_annotated_comments.csv', 'toxicity')
     train('clean_toxicity_annotated_comments.csv', 'toxicity_score')
+
+if __name__ == '__main__':
+    get_label_feature()
 
 
 

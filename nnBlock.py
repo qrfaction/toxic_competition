@@ -74,8 +74,8 @@ class baseNet(nn.Module):
         )
 
         self.fc = nn.Linear(80,6)
-
-        self.fc2 = nn.Linear(10,16)
+        from Ref_Data import NUM_TOPIC
+        self.fc2 = nn.Linear(4+NUM_TOPIC,16)
 
     def forward(self,sentences,features):
 
@@ -110,12 +110,12 @@ class DnnModle:
                 {'params': self.basenet.module.GRU2.parameters()},
                 {'params': self.basenet.module.fc.parameters()},
                 {'params': self.basenet.module.fc2.parameters()},
-                {'params':self.basenet.module.embedding.parameters() ,'lr':1e-5},
+                # {'params':self.basenet.module.embedding.parameters() ,'lr':1e-5},
             ],
             lr=0.001,
         )
         self.basenet.train()
-        
+
         if loss == 'focalLoss':
             self.loss_f = focallogloss(alpha=alpha)
         elif loss =='aucLoss':
@@ -129,7 +129,6 @@ class DnnModle:
         features = torch.autograd.Variable(features.cuda())
         y_pred = self.basenet(comment,features)
         loss = self.loss_f(y_pred,Y)
-        print(loss)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

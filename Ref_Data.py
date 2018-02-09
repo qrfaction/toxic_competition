@@ -5,6 +5,10 @@ replace_word = {
     'unknow':' _unk_ ',
 }
 
+PATH = 'data/'
+
+NUM_TOPIC = 8
+
 
 blocked_ips = ["216.102.6.176",
                "216.120.176.2",
