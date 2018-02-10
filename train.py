@@ -17,25 +17,23 @@ def cv(get_model, X, Y, test,K=10,outputfile='baseline.csv.gz'):
 
     results = []
     scores = []
-    import sys
-    with open(LOG,'w') as f:
-        sys.stdout = f
-        for i, (train_index, valid_index) in enumerate(kf):
-            print('第{}次训练...'.format(i))
-            trainset = tool.splitdata( train_index,X)
-            label_train = Y[train_index]
 
-            validset = tool.splitdata( valid_index,X)
-            label_valid = Y[valid_index]
+    for i, (train_index, valid_index) in enumerate(kf):
+        print('第{}次训练...'.format(i))
+        trainset = tool.splitdata( train_index,X)
+        label_train = Y[train_index]
 
-            model=get_model()
-            model,model_score = _train_model(model,train_x=trainset,train_y=label_train,
-                                 val_x=validset,val_y=label_valid)
+        validset = tool.splitdata( valid_index,X)
+        label_valid = Y[valid_index]
 
-            scores.append(model_score)
-            results.append(model.predict(test))
+        model=get_model()
+        model,model_score = _train_model(model,train_x=trainset,train_y=label_train,
+                             val_x=validset,val_y=label_valid)
 
-        test_predicts = tool.cal_mean(results,MEAN_TYPE,scores)
+        scores.append(model_score)
+        results.append(model.predict(test))
+
+    test_predicts = tool.cal_mean(results,MEAN_TYPE,scores)
 
 
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
@@ -78,12 +76,12 @@ def _train_model(model,train_x, train_y, val_x, val_y,batchsize = 256,frequecy =
 
 def train(maxlen=200):
     wordvecfile = (
-                    # ('crawl', 300),
-                    ('fasttext',300),
+                    ('crawl', 300),
+                    # ('fasttext',300),
                 )
     trainset, testset, labels ,embedding_matrix = \
         input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
-    embedding_matrix = embedding_matrix['fasttext']
+    embedding_matrix = embedding_matrix['crawl']
 
     getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=False,alpha = 3,loss='focalLoss')
 

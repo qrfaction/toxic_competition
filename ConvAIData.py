@@ -26,6 +26,8 @@ def Sanitize():
     prepocess.clean_dataset(toxic_cmt,'clean_toxicity_annotated_comments.csv')
 
 
+
+
 def Tfidfize(df):
 
     max_vocab = 200000

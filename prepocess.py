@@ -35,13 +35,20 @@ def cleanComment(comments):
         comment = re.sub('( b!\+ch)|( b!tch)|( bi\+ch)',' bitch ',comment)
         comment = re.sub('( s\.o\.b\.)|( s\.o\.b)',' sob ',comment)
         comment = re.sub('( sh!t)|( shi\+)|( sh!\+)',' shit ',comment)
-        comment = re.sub('( blow job)','blowjob',comment)
-        comment = re.sub("( let's )",' let us ',comment)
-        comment = re.sub("('s )", ' is ', comment)
+
+
+        comment = re.sub('( let\'s )', ' let us ', comment)
+        comment = re.sub('(\'s )', ' ', comment)
+        # comment = re.sub('(blow job)',' blowjob ',comment)
+        comment = re.sub('(blow jobs)', ' blow job ', comment)
+        comment = re.sub('(blowjobs)', ' blow job ', comment)
+        comment = re.sub('(blowjob)', ' blow job ', comment)
+
         comment = re.sub("(fack you)|(fack u)",' fuck you ',comment)
         comment = re.sub('(go fack)','go fuck',comment)
         comment = re.sub('( \d\d:\d\d)',replace_word['num'],comment)
         comment = re.sub('( anti-)', ' anti ', comment)
+        comment = re.sub('@', 'a', comment)
         return comment
 
     patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
@@ -96,9 +103,10 @@ def cleanComment(comments):
         comment = re.sub('\s+',' ',comment)
         comment = re.sub('(\. )+',' . ',comment)
         comment = re.sub('(\. \.)+',' . ',comment)
-        comment = re.sub('("")+', ' ', comment)
-
-
+        comment = re.sub('("")+', '', comment)
+        comment = re.sub('( \' )', ' " ', comment)
+        comment = re.sub('(\( \))+', '', comment)
+        comment = re.sub('\s+', ' ', comment)
         # 纠正拼写错误/
         # for word,pos in tknzr(comment):
         #     if w_dict.check(word) == False:
@@ -143,7 +151,9 @@ def splitTarget(filename):
 
 
 def pipeline(
-        file =('train.csv','test.csv','train_fr.csv','train_es.csv','train_de.csv')
+        file =('train.csv','test.csv',
+               # 'train_fr.csv','train_es.csv','train_de.csv'
+               )
     ):
     for filename in tqdm(file):
         dataset = input.read_dataset(filename)

@@ -452,9 +452,11 @@ APPO = {
     "that'll":'that will',
     "we'll": " will",
     "tryin'": "trying",
-    "'s":' is ',
+    # "'s":' is ',
     "could've":'can have',
-
+    "8hi":'hi',
+    "goddned":'goddamn',
+    # 'fgt':'faggot',
     "meatpuppet":'meat puppet',
     "c'mon":'come on',
     "o'reilly":replace_word['name'],

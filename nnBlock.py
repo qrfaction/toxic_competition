@@ -86,7 +86,9 @@ class baseNet(nn.Module):
         x = x[:,:,:128] + x[:,:,128:]
         hidden = autograd.Variable(torch.zeros(2, x.size()[0],64)).cuda()
         x,hn = self.GRU2(x,hidden)
-        y = hn[0,:,:] + hn[1,:,:]
+        # y = hn[0,:,:] + hn[1,:,:]
+        y = nn.MaxPool1d(2)(x)
+        print(y.size(),x.size())
         y = y.squeeze()
         features =self.fc2(features)
         features = nn.functional.sigmoid(features)

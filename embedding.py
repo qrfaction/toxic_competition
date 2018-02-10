@@ -80,9 +80,11 @@ def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
     # 停止符用0
     embedding_matrix = np.random.uniform(-0.25,0.25,size=(num_words,dimension))
     embedding_matrix[0] = 0
+
+    ft_model = load_model(PATH + 'wiki.en.bin')
+    print(ft_model.get_word_vector('asdascasafadfsagfsgsadaetagdhgdfh').astype('float32'))
     print('num of word: ',len(word_index))
     if wordvecfile=='fasttext':
-        ft_model = load_model(PATH + 'wiki.en.bin')
         for word, i in tqdm(word_index.items()):
             embedding_matrix[i] = ft_model.get_word_vector(word).astype('float32')
     else:
@@ -94,6 +96,7 @@ def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
             if embedding_vector is None:
                 noword[word]=frequency[word]
                 num_noword+=1
+                embedding_matrix[i] = ft_model.get_word_vector(word).astype('float32')
             else:
                 embedding_matrix[i] = embedding_vector
 
