@@ -11,7 +11,7 @@ def splitdata(index_train,dataset):
     return train_x
 
 
-class CommentData(torch.utils.data.Dataset):
+class CommentData(Dataset):
     def __init__(self, trainset , labels):
         self.trainset = torch.LongTensor(trainset['comment'].tolist())
         self.labels = torch.FloatTensor(labels.tolist())
@@ -94,10 +94,10 @@ class Generate:
         return train_x,train_y
 
 
-def cal_mean(results,mean_type,scores=None):
+def cal_mean(results,scores=None):
 
     if scores is None:
-        weights = np.ones(len(results))
+        weights = np.ones((len(results),6))
     else :
         scores = np.array(scores)
         scores -= 0.98
@@ -105,16 +105,11 @@ def cal_mean(results,mean_type,scores=None):
         weights = np.int64(scores)
         print(weights)
 
-    if mean_type == 'geo_mean':
-        test_predicts = np.ones(results[0].shape)
-        for fold_predict,weight in zip(results,weights):
-            test_predicts *= (fold_predict**weight)
-        test_predicts **= (1. / np.sum(weights))
-    elif mean_type == 'arith_mean':
-        test_predicts = np.zeros(results[0].shape)
-        for fold_predict,weight in zip(results,weights):
-            test_predicts += (fold_predict * weight)
-        test_predicts /= np.sum(weights)
+    test_predicts = np.zeros(results[0].shape)
+    for i in range(6):
+        for fold_predict,weight in zip(results,weights[:,i]):
+            test_predicts[:,i] += (fold_predict[:,i] * weight)
+        test_predicts[:,i] /= np.sum(weights[:,i])
 
     return test_predicts
 

@@ -1,9 +1,9 @@
+from fastText import load_model
 from tqdm import tqdm
 import numpy as np
 import multiprocessing as mlp
 import input
 from nltk.tokenize import TweetTokenizer
-from fastText import load_model
 from Ref_Data import PATH
 
 
@@ -52,7 +52,7 @@ def tokenize_sentences(sentences,filter_word=True):
         for sentence in tqdm(sentences):
             seq = []
             for word in sentence:
-                if filter_word and frequency[word]<=4:
+                if filter_word and frequency[word]<=3:
                     continue
                 if word not in words_dict:
                     words_dict[word] = len(words_dict)+1
@@ -82,7 +82,6 @@ def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
     embedding_matrix[0] = 0
 
     ft_model = load_model(PATH + 'wiki.en.bin')
-    print(ft_model.get_word_vector('asdascasafadfsagfsgsadaetagdhgdfh').astype('float32'))
     print('num of word: ',len(word_index))
     if wordvecfile=='fasttext':
         for word, i in tqdm(word_index.items()):

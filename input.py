@@ -1,7 +1,7 @@
+import embedding
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
-import embedding
 from Ref_Data import replace_word,PATH
 
 wordvec={
