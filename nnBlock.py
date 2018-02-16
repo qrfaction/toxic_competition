@@ -70,13 +70,14 @@ class baseNet(nn.Module):
             num_layers=1,
             batch_first=True,
             bidirectional=True,
+            dropout=0.3,
         )
         self.maxPool = nn.MaxPool1d(200)
         self.avePool = nn.AvgPool1d(200)
 
         from Ref_Data import NUM_TOPIC
         # self.fc2 = nn.Linear(4 + NUM_TOPIC, 8)
-        self.fc = nn.Linear(64*3 ,6)
+        self.fc = nn.Linear(64*2 ,6)
 
 
 
@@ -89,8 +90,8 @@ class baseNet(nn.Module):
         hidden = autograd.Variable(torch.zeros(2, x.size()[0],64),volatile=volatile).cuda()
         x,hn = self.GRU2(x,hidden)
         x = x[:, :, :64] + x[:, :, 64:]
-        y1 = hn[0,:,:] + hn[1,:,:]
-        y1 = y1.squeeze()
+        # y1 = hn[0,:,:] + hn[1,:,:]
+        # y1 = y1.squeeze()
 
         y2 = self.maxPool(x.transpose(1,2))
         y2 = y2.squeeze()
@@ -100,7 +101,7 @@ class baseNet(nn.Module):
 
         # features =self.fc2(features)
         # features = nn.functional.sigmoid(features)
-        y = torch.cat((y1,y2,y3),1)
+        y = torch.cat((y2,y3),1)
         y = self.fc(y)
         y = nn.functional.sigmoid(y)
         return y

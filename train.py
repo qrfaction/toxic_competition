@@ -96,7 +96,7 @@ def train(maxlen=200):
     embedding_matrix = embedding_matrix['crawl']
 
     import nnBlock
-    getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=False,alpha = 3,loss='ceLoss')
+    getmodel=lambda:nnBlock.DnnModle(300,embedding_matrix,trainable=False,alpha = 3,loss='focalLoss')
 
     cv(getmodel,trainset,labels,testset,outputfile='baseline.csv.gz',K=6)
 
