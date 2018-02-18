@@ -24,7 +24,6 @@ usecols = [
     # 'num_punctuation',
     # 'num_symbols',
     # 'num_words',
-    # 'num_unique_words',
     # 'words_vs_unique',
     # 'num_smilies',
     # 'count_word',
@@ -40,8 +39,8 @@ usecols = [
     # 'recipient_attack_level',
     'third_party_attack_level',
     'other_attack_level',
-    'toxicity_level',
-    # 'attack_level',
+    # 'toxicity_level',
+    'attack_level',
 
     ## leaky feature
     # 'ip',
@@ -55,11 +54,11 @@ usecols = [
 ]
 from Ref_Data import NUM_TOPIC
 usecols += ['topic' + str(i) for i in range(NUM_TOPIC)]
-
+usecols += ['distri_'+chr(i) for i in range(97,26+97)]
+usecols.append('distri_!')
 
 def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',300),)):
     """
-
     :param maxlen: 句子最大长度
     :param trainfile: 使用哪个训练集版本(有多种语言翻译后的版本)
     :param wordvecfile: 使用哪个词向量
@@ -96,8 +95,12 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
         # 'recipient_attack_level',
         'third_party_attack_level',
         'other_attack_level',
-        'toxicity_level',
-        # 'attack_level',
+        # 'toxicity_level',
+        'attack_level',
+
+        # 'count_unique_word',
+        # 'capitals',
+        # 'caps_vs_length',
     ]
 
     dataset = train.append(test)

@@ -3,7 +3,8 @@ replace_word = {
     'shuaping':' _shuabing_ ',
     'name':' _name_ ',
     'unknow':' _unk_ ',
-    "link":" _link_ "
+    "link":" _link_ ",
+    "time":" _time_ ",
 }
 
 PATH = 'data/'
@@ -483,7 +484,7 @@ APPO = {
     "10fags":"fag",
     "ffuuck":"fuck",
     "fagggot":"faggot",
-    'f-ucking': 'fuck',
+    'f-ucking': 'fucking',
     'fvckers': 'fucker',
     'madyou': 'mad you',
     'turkeyfuck': 'turkey fuck',
@@ -517,7 +518,7 @@ APPO = {
     'offfuck': 'fuck off',
     'vaginapenis': 'vagina penis',
     'go0verment': 'goverment',
-    'gurdyhurdy': 'hurdy-gurdy',
+    'gurdyhurdy': 'hurdy gurdy',
     'criminalwar': 'criminal war',
     'obma': 'obama',
     'radicalnigger': 'radical nigger',
@@ -615,6 +616,7 @@ APPO = {
     'fffff': ' ',
     'kkkkkk': ' ',
     'border-top': ' ',
+    "homosexuals":"homosexual",
 
     'anti-semitism': 'anti semitic',
     'shitfuck': 'shit fuck',
@@ -624,7 +626,8 @@ APPO = {
     '2px': ' ',
     'anti-vandalism': 'anti vandalism',
     '1,000': replace_word['num'],
-
+    "homopetersymonds":"homo"+replace_word['name'],
+    "cockface":"dickface",
     '. .': ' ',
     '#ff0000': ' ',
     'clustercuntfartymcflyupmycuntholebastardfuck': 'cluster cunt farty fly up my cunt hole bastard fuck',
@@ -661,7 +664,10 @@ APPO = {
     'adsydfiusagjfasfsduyaidfasgiudf':replace_word['shuaping'],
     'permissions-en':' ',
     'cockebaums':'cock'+replace_word['name'],  #ebaums 貌似是个人名
-    'putabelen':'puta'+replace_word['name'],   #belen疑似人名
+    'putabelen':"bethlehem whore",
+    "cocksuckers":"cocksucker",
+    "cocks":"cock",
+    "#cocksucker":"cocksucker",
     'pensnsnniensnsn':'penis',
     'faggeorge':'faggot'+replace_word['name'],
     'nl33ers':'nigger',
@@ -890,9 +896,9 @@ APPO = {
     'njgw':replace_word['name'],
     'saget':replace_word['name'],
     'bob':replace_word['name'],
-    'utc':' ',
-    'facking':'fuck',
-    'fackin' : 'fuck',
+    'utc':replace_word['time'],
+    'facking':'fucking',
+    'fackin' : 'fucking',
     'serbiafack':replace_word['name']+'fuck',
     'shitlol':'shit lol',
     'assfack':'ass fuck',
@@ -914,8 +920,6 @@ APPO = {
     '#fed1a0':' ',
     'faggotmongo':'faggot mongo',
     '#e1f1de':' ',
-    'fuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuck':'fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck',
-    '#f9f9f9':' ',
     'fuock':'fuck',
     'anti-hindu':'anti hindu',
     'cuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcuntcunti':
@@ -940,6 +944,7 @@ APPO = {
     "1-902-542-7492":' ',
     "limped-dicked":"limp dick",
     "fuckbags":" fuck idiot",
+    "fuckbag":"fuck idiot",
     "retardedretarded":"retarded",
     "dickjulius":"dick"+replace_word['name'],
     "julius":replace_word["name"],
@@ -974,7 +979,7 @@ APPO = {
     "fucktarded":"fucktard",
     "fuck-head":"fuckhead",
     "fuckoff":"fuck off",
-
+    "n3gros":"nigger",
     "clusterfuck":"cluster fuck",
     "clusterfucked":"cluster fuck",
 
@@ -987,7 +992,6 @@ APPO = {
     "fuckkk":"fuck",
 
     "fuckingg":"fucking",
-    "fuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckfuckv":"fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck fuck ",
     "fvcking":"fucking",
     "fuckkkkkkk":"fuck",
     "fuck-off":"fuck off",
@@ -999,7 +1003,7 @@ APPO = {
 
     "fucked-up":"fuck up",
     "fuckup":"fuck up",
-    "fuckign":"fuck",
+    "fuckign":"fucking",
     "fuckass":"fuck ass",
     "fuckhole":"fuck hole",
     "fuck-up":"fuck up",
@@ -1014,7 +1018,7 @@ APPO = {
     "fuck'in":"fuck",
     "fat-fuck":"fat fuck",
     "fuck-sissy":"fuck sissy",
-    "fuck'ing":"fuck",
+    "fuck'ing":"fucking",
     "dick-fuck":"dick fuck",
     "go-fuck-your-self":"go fuck your self",
     "fuck-off-jewish":"fuck off jewish",
@@ -1024,8 +1028,8 @@ APPO = {
     "shut-the-fuck-up":"shut fuck up",
     "fuck-ass-no":"fuck ass no",
     "f-ck":"fuck",
-    "f-cking":"fuck",
-    "fuckking":"fuck",
+    "f-cking":"fucking",
+    "fuckking":"fucking",
     'mofo': 'motherfucker',
     'motherfacking': 'motherfucker',
     "motherfuck": "motherfucker",
@@ -1066,7 +1070,7 @@ APPO = {
     "fuckery":"fucker",
     "fucki":"fuck",
 
-    "fuck-ng":"fuck",
+    "fuck-ng":"fucking",
     "fuck'n":"fuck",
     "fuckiest":"fuck",
     "dumbfuck":"dumb fuck",
@@ -1134,8 +1138,7 @@ APPO = {
     "jewniggers":"jew nigger",
     "niggerian":"nigger",
     "niggerjiggabo":"nigger",
-    "niggerin":"nigger"
-    "nigger puppet",
+    "niggerin":"nigger",
     "niggaaarr":"nigger",
     "heilhitlerfuckshitcuntbitchniggerfaggot":"heil hitler fuck shit cunt bitch nigger faggot",
     "niggerkite":"nigger kite",
@@ -1279,7 +1282,7 @@ APPO = {
     "7jsfucking":"fucking",
     "youcantstopmeyoufuckingretardiwishyouwereheresoi":"you can't stop me you fucking retard i wish you were here so i",
     "fuckinggggggg":"fucking",
-    "fuckcock":"fuckcock",
+    "fuckcock":"fuck cock",
     "fuuuuuuuuuuuuuuuuucccccccccccccckkkkkkkkkkkkkkkkkkkkkkkk":"fuck",
     "suucking":"sucking",
     "fuckkkkkkkkkkkkkkkkkkkkkkk":"fuck",
@@ -1308,7 +1311,17 @@ APPO = {
     "fawkes":replace_word['name'],
     "losers":"loser",
     "whores":"whore",
+    "fawk":"fuck",
     "asscrass":'ass ass',
+    'fgt': 'faggot',
+    "bichez":"bitch",
+    "crackwhores":"crack whore",
+    'negras':"nigger",
+    'negra':"nigger",
+    "thankyou":"thank you",
+    "youself":"yourself",
+    "retardedyour":"retard your",
+    "250px":" ",
     ');':'):',
     ":(":"):",
     ';)':'(:',
@@ -1365,15 +1378,10 @@ APPO = {
 
     #暂定
     "dickfag":"dick faggot",
-    "dik":"dick",
-
-    "fawk":"fuck",
     "suk":"suck",
     "nuggetz":"nigger",
-    'fgt':'faggot',
+
 }
-
-
 
 
 

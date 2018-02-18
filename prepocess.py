@@ -42,35 +42,32 @@ def cleanComment(comments):
         comment = re.sub('(d i c k h e a d)', ' dickhead ', comment)
         comment = re.sub('(d e m o n s)', ' demon ', comment)
         comment = re.sub('(lov3r)', ' lover ', comment)
-        comment = re.sub('(f@ggot)|(fagg0t)', ' faggot ', comment)
+        comment = re.sub('(f@ggot)|(fagg0t)|(fa ggot)|(f\.a\.g\.g\.o\.t)|(f a g g o t)|(fa\,gg\,ot)', ' faggot ', comment)
         comment = re.sub('(b u m s)', ' bum ', comment)
         comment = re.sub('( c ock)|(c\*ck)', ' cock ', comment)
         comment = re.sub('(a r m p i t s)', ' armpit ', comment)
         comment = re.sub('(s m e l l)', ' smell ', comment)
         comment = re.sub('(s  t  i  n  k  y)', ' stinky ', comment)
         comment = re.sub('(s u ck)|(s u c k)|($uck)|(su ck )|( suck{3,})', ' suck ', comment)
-        comment = re.sub('(s u ck)|(s u c k)|($uck)|(su ck )|( suck{3,})', ' suck ', comment)
         comment = re.sub('(d i c k)|(d!ck)|( di ck )', ' dick ', comment)
         comment = re.sub('(pen!s)', ' penis ', comment)
         comment = re.sub('( ass monkey)', ' asshole ', comment)
         comment = re.sub('( p i s s)|(p\.i\.s\.s)', ' piss ', comment)
-        comment = re.sub('( shi t )', ' shit ', comment)
         comment = re.sub('( h e l l)', ' hell ', comment)
         comment = re.sub('( a s s)|(a\$\$)( a s  s )',' ass ',comment)
         comment = re.sub('( w t f)',' wtf ',comment)
-        comment = re.sub('(k!kes)', ' kike ', comment)
-        comment = re.sub('(k!ke)', ' kike ', comment)
+        comment = re.sub('(k!kes{0,})', ' kike ', comment)
+        comment = re.sub('(hijos de puta)', ' son of bitch ', comment)
         comment = re.sub('( s t f u)',' stfu ' ,comment)
-        comment = re.sub('(fa ggot)|(f\.a\.g\.g\.o\.t)|(f a g g o t)|(fa\,gg\,ot)', ' faggot ', comment)
         comment = re.sub('(n i g g e r)|(nig gger)|(n e g r o)|(n!ger)|(n!gger)|(n!gga)|(n!gg@r)','nigger',comment)
 
         comment = re.sub('( b!\+ch)|( b!tch)|( bi\+ch)|( b!t\*h)|(b\,itch\,es)|(bi\,tc\,h)',' bitch ',comment)
         comment = re.sub('( s\.o\.b\.)|( s\.o\.b)',' sob ',comment)
-        comment = re.sub('( sh!t)|( shi\+)|( sh!\+)',' shit ',comment)
+        comment = re.sub('( sh!t)|( shi\+)|( sh!\+)|( shi t )',' shit ',comment)
         comment = re.sub('( p ussy)', ' pussy ', comment)
         comment = re.sub('( let\'s )', ' let us ', comment)
         comment = re.sub('(\'s )', ' ', comment)
-        comment = re.sub('(blow jobs)|(blowjobs)|(blowjob)', ' blow job ', comment)
+        comment = re.sub('(blow jobs)|(blowjobs)|(blow job)', ' blowjob ', comment)
 
         comment = re.sub('(go fack)','go fuck',comment)
         comment = re.sub('( \d\d:\d\d)',replace_word['num'],comment)
@@ -85,7 +82,7 @@ def cleanComment(comments):
     patternRgb = '#(?:[0-9a-f]{3}){1,2}'
     from nltk.tokenize import TweetTokenizer
     tknzr = TweetTokenizer()
-
+    lem = WordNetLemmatizer()
     clean_comments = []
 
     for comment in tqdm(comments):
@@ -117,9 +114,8 @@ def cleanComment(comments):
         # 分词
         words = tknzr.tokenize(comment)
 
-        lem = WordNetLemmatizer()
         # 提取词干
-        # words = [lem.lemmatize(word, "v") for word in words]
+        # words = [lem.lemmatize(word) for word in words]
 
         # 拼写纠正 以及 you're -> you are
         words = [APPO[word] if word in APPO else word for word in words]
@@ -144,7 +140,7 @@ def cleanComment(comments):
         words = tknzr.tokenize(comment)
         # 拼写纠正 以及 you're -> you are
         words = [APPO[word] if word in APPO else word for word in words]
-        # words = [lem.lemmatize(word, "v") for word in words]
+        # words = [lem.lemmatize(word) for word in words]
         comment = " ".join(words)
 
         # 纠正拼写错误/
@@ -181,8 +177,6 @@ def clean_dataset(dataset,filename):
     dataset['comment_text'] = clean_comments
 
     dataset.to_csv(PATH+filename,index=False)
-
-
 
 def splitTarget(filename):
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]

@@ -7,7 +7,7 @@ import torch
 from tqdm import tqdm
 from textblob import TextBlob
 from textblob.translate import NotTranslated
-
+import json
 
 def translate(comments):
     translation = {}
@@ -22,7 +22,6 @@ def translate(comments):
 
 def deal_other_language():
     import multiprocessing as mlp
-    import json
     with open('language_record.json') as f:
         comments = json.loads(f.read())
 
@@ -183,15 +182,34 @@ def get_language():
     with open('language_record.json', 'w') as f:
         f.write(json.dumps(records, indent=4, separators=(',', ': '),ensure_ascii=False))
 
-
+def add_comment(index,file):
+    import input
+    if file == 'te':
+        dataset = input.read_dataset('test.csv')
+    else:
+        dataset = input.read_dataset('train.csv')
+    with open('language_record.json') as f:
+        comments = json.loads(f.read())
+    for i in index:
+        comment = [
+            file+str(i),
+            [
+                dataset.loc[i,'comment_text'],
+                "add",
+                1
+            ]
+        ]
+        comments.append(comment)
+    with open('language_record.json', 'w') as f:
+        f.write(json.dumps(comments, indent=4, separators=(',', ': '),ensure_ascii=False))
 
 
 if __name__=="__main__":
     # get_language()
+
+    index = [31903,32494,109104]
+    add_comment(index,'te')
     deal_other_language()
-
-
-
 
 
 

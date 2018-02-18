@@ -20,16 +20,13 @@ def countFeature(dataset):
         df['capitals'] = df['comment_text'].apply(lambda comment: sum(1 for c in comment if c.isupper()))
         df['caps_vs_length'] = df.apply(lambda row: float(row['capitals']) / float(row['total_length']),
                                         axis=1)
-        df['num_exclamation_marks'] = df['comment_text'].apply(lambda comment: comment.count('!'))
+
         df['num_question_marks'] = df['comment_text'].apply(lambda comment: comment.count('?'))
         df['num_punctuation'] = df['comment_text'].apply(
             lambda comment: sum(comment.count(w) for w in '.,;:'))
         df['num_symbols'] = df['comment_text'].apply(
             lambda comment: sum(comment.count(w) for w in '*&$%'))
         df['num_words'] = df['comment_text'].apply(lambda comment: len(comment.split()))
-        df['num_unique_words'] = df['comment_text'].apply(
-            lambda comment: len(set(w for w in comment.split())))
-        df['words_vs_unique'] = df['num_unique_words'] / df['num_words']
         df['num_smilies'] = df['comment_text'].apply(
             lambda comment: sum(comment.count(w) for w in (':-)', ':)', ';-)', ';)')))
 
@@ -64,6 +61,19 @@ def countFeature(dataset):
 
         return df
 
+    def letter_distribution(df):
+        for i in range(97,97+26):
+            df['distri_'+chr(i)] = df['comment_text'].apply(lambda comment: comment.count(chr(i)))
+        df['distri_'+'!'] = df['comment_text'].apply(lambda comment: comment.count('!'))
+
+        columns = ['distri_'+chr(i) for i in range(97,97+26)]
+        columns.append('distri_!')
+        def normalize(comment):
+            comment[columns] =  comment[columns]/(comment[columns].sum()+0.01)
+            return comment
+        df = df.apply(normalize,axis=1)
+        return df
+
     def deal_space(comment):
 
         comment = re.sub("\\n+", ".", comment)
@@ -76,8 +86,8 @@ def countFeature(dataset):
 
     dataset["comment_text"] = dataset["comment_text"].apply(deal_space)
     dataset = CountFeatures(dataset)
-    dataset = LeakyFeatures(dataset)
-
+    # dataset = LeakyFeatures(dataset)
+    dataset = letter_distribution(dataset)
     return dataset
 
 

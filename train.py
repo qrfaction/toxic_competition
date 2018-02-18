@@ -58,7 +58,7 @@ def _train_model(model,train_x, train_y, val_x, val_y,test ,batchsize = BATCHSIZ
 
     while True:
         for samples_x,samples_f,samples_y in loader:
-            model.fit(samples_x,samples_y)
+            model.fit(samples_x,samples_f,samples_y)
             # evaulate
             if iter % frequecy ==0:
                 y_pred = model.predict(val_x)
@@ -69,7 +69,7 @@ def _train_model(model,train_x, train_y, val_x, val_y,test ,batchsize = BATCHSIZ
                 mean_score = np.mean(Scores)
                 print(mean_score)
                 print(Scores)
-                if iter == 6*frequecy:
+                if iter == 10*frequecy:                   # 模型基本都要1000轮以后
                     best_iter = iter
                     best_score = mean_score
                     weights = Scores
@@ -77,7 +77,7 @@ def _train_model(model,train_x, train_y, val_x, val_y,test ,batchsize = BATCHSIZ
                 elif best_score < mean_score:
                     best_score = mean_score
                     best_iter = iter
-                    if iter > 6*frequecy:             # 分数升高就保存预测结果
+                    if iter > 10*frequecy:             # 分数升高就保存预测结果
                         print(best_score,best_iter,'\n')
                         weights = Scores
                         test_pred = model.predict(test)

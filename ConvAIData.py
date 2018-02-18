@@ -41,7 +41,7 @@ def Tfidfize(df):
 
     return tfidf, tfidfer
 
-def train(trainfile,target):
+def get_label_feat(trainfile,target):
     from Ref_Data import replace_word
     dataset = pd.read_csv(PATH+trainfile)
     dataset.dropna(inplace=True)
@@ -69,22 +69,38 @@ def train(trainfile,target):
     train_scores = model.predict(tfidf_train)
     test_scores = model.predict(tfidf_test)
 
-    train_orig[target+'_level'] = train_scores
-    test_orig[target+'_level'] = test_scores
-
-    train_orig.to_csv(PATH+'clean_train.csv', index=False)
-    test_orig.to_csv(PATH+'clean_test.csv', index=False)
+    return train_scores,test_scores
 
 def get_label_feature():
-    Sanitize()
-    train('clean_attack_annotated_comments.csv', 'attack')
-    train('clean_attack_annotated_comments.csv', 'quoting_attack')
-    train('clean_attack_annotated_comments.csv', 'recipient_attack')
-    train('clean_attack_annotated_comments.csv', 'third_party_attack')
-    train('clean_attack_annotated_comments.csv', 'other_attack')
+    import multiprocessing as mlp
 
-    train('clean_toxicity_annotated_comments.csv', 'toxicity')
-    train('clean_toxicity_annotated_comments.csv', 'toxicity_score')
+    Sanitize()
+
+    results = []
+    features = {
+        'attack':'clean_attack_annotated_comments.csv',
+        'quoting_attack':'clean_attack_annotated_comments.csv',
+        'recipient_attack':'clean_attack_annotated_comments.csv',
+        'third_party_attack':'clean_attack_annotated_comments.csv',
+        'other_attack':'clean_attack_annotated_comments.csv',
+        'toxicity':'clean_toxicity_annotated_comments.csv',
+        'toxicity_score':'clean_toxicity_annotated_comments.csv'
+    }
+    pool = mlp.Pool(mlp.cpu_count())
+    for feat,file in features.items():
+        result = pool.apply_async(get_label_feature, args=(file,feat))
+        results.append(result)
+    pool.close()
+    pool.join()
+
+    train_orig = pd.read_csv('data/clean_train.csv')
+    test_orig = pd.read_csv('data/clean_test.csv')
+    for i,(feat, file) in enumerate(features.items()):
+        train_feat,test_feat = results[i].get()
+        train_orig[feat+'level'] = train_feat
+        test_orig[feat+'level'] = test_feat
+    train_orig.to_csv(PATH + 'clean_train.csv', index=False)
+    test_orig.to_csv(PATH + 'clean_test.csv', index=False)
 
 if __name__ == '__main__':
     get_label_feature()

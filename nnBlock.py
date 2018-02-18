@@ -57,51 +57,53 @@ class baseNet(nn.Module):
         self.dropout = nn.Dropout(p=0.3)
         self.GRU1 = nn.GRU(
             input_size=dim,
-            hidden_size=128,
+            hidden_size=160,
             num_layers=1,
             batch_first=True,
             bidirectional=True,
-            dropout=0.3,
+            dropout=0.5,
         )
 
         self.GRU2 = nn.GRU(
-            input_size=128,
-            hidden_size=64,
+            input_size=160,
+            hidden_size=80,
             num_layers=1,
             batch_first=True,
             bidirectional=True,
-            dropout=0.3,
+            dropout=0.5,
         )
+
+        self.atte_fc1 = nn.Linear(80,40)
+        self.atte_fc2 = nn.Linear(40,1)
+
         self.maxPool = nn.MaxPool1d(200)
         self.avePool = nn.AvgPool1d(200)
 
         from Ref_Data import NUM_TOPIC
-        # self.fc2 = nn.Linear(4 + NUM_TOPIC, 8)
-        self.fc = nn.Linear(64*2 ,6)
+        self.fc2 = nn.Linear(4 + NUM_TOPIC + 27 ,32)
+        self.fc = nn.Linear(80*2 + 32,6)
 
 
 
-    def forward(self,sentences,volatile):
+    def forward(self,sentences,features,volatile):
 
         x = self.embedding(sentences)
-        hidden = autograd.Variable(torch.zeros(2,x.size()[0],128),volatile=volatile).cuda()
+        hidden = autograd.Variable(torch.zeros(2,x.size()[0],160),volatile=volatile).cuda()
         x,_ = self.GRU1(x,hidden)
-        x = x[:,:,:128] + x[:,:,128:]
-        hidden = autograd.Variable(torch.zeros(2, x.size()[0],64),volatile=volatile).cuda()
+        x = x[:,:,:160] + x[:,:,160:]
+        hidden = autograd.Variable(torch.zeros(2, x.size()[0],80),volatile=volatile).cuda()
         x,hn = self.GRU2(x,hidden)
-        x = x[:, :, :64] + x[:, :, 64:]
-        # y1 = hn[0,:,:] + hn[1,:,:]
-        # y1 = y1.squeeze()
+        x = x[:, :, :80] + x[:, :,80:]          # n*200*size
 
-        y2 = self.maxPool(x.transpose(1,2))
-        y2 = y2.squeeze()
 
-        y3 = self.avePool(x.transpose(1,2))
-        y3 = y3.squeeze()
+        y2 = self.maxPool(x.transpose(1,2)).squeeze()
+        y3 = self.avePool(x.transpose(1,2)).squeeze()
 
-        # features =self.fc2(features)
-        # features = nn.functional.sigmoid(features)
-        y = torch.cat((y2,y3),1)
+        features =self.fc2(features)
+        features = nn.functional.tanh(features)
+        y = torch.cat((y2,y3,features),1)
+
+        # y = x.sum(dim=1)
         y = self.fc(y)
         y = nn.functional.sigmoid(y)
         return y
@@ -134,11 +136,11 @@ class DnnModle:
         elif loss =='ceLoss':
             self.loss_f = nn.BCELoss()
 
-    def fit(self,X,Y):
+    def fit(self,X,features,Y):
         comment = torch.autograd.Variable(X.cuda())
         Y = torch.autograd.Variable(Y.cuda())
-        # features = torch.autograd.Variable(features.cuda())
-        y_pred = self.basenet(comment,volatile=False)
+        features = torch.autograd.Variable(features.cuda())
+        y_pred = self.basenet(comment,features,volatile=False)
         loss = self.loss_f(y_pred,Y)
         self.optimizer.zero_grad()
         loss.backward()
@@ -148,10 +150,10 @@ class DnnModle:
     def predict(self,X,batchsize=2048):
         self.basenet.eval()
         comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()).cuda(), volatile=True)
-        # features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()).cuda(),volatile=True)
+        features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()).cuda(),volatile=True)
         y_pred = torch.zeros((len(comment),6)).cuda()
         for i in range(0,len(comment),batchsize):
-            y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize],volatile=True).data
+            y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize],features[i:i+batchsize],volatile=True).data
         self.basenet.train()
         return y_pred.cpu().numpy()
 
