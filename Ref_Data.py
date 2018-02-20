@@ -354,6 +354,9 @@ blocked_ips = ["216.102.6.176",
                "96.31.10.178",
                "50.251.229.75"]
 
+USE_TOPIC = True
+USE_LETTERS = False
+
 
 APPO = {
     # "aren't": "are not",

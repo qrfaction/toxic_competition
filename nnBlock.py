@@ -57,7 +57,7 @@ class baseNet(nn.Module):
         self.dropout = nn.Dropout(p=0.3)
         self.GRU1 = nn.GRU(
             input_size=dim,
-            hidden_size=160,
+            hidden_size=200,
             num_layers=1,
             batch_first=True,
             bidirectional=True,
@@ -65,35 +65,42 @@ class baseNet(nn.Module):
         )
 
         self.GRU2 = nn.GRU(
-            input_size=160,
-            hidden_size=80,
+            input_size=200,
+            hidden_size=100,
             num_layers=1,
             batch_first=True,
             bidirectional=True,
             dropout=0.5,
         )
 
-        self.atte_fc1 = nn.Linear(80,40)
-        self.atte_fc2 = nn.Linear(40,1)
+        # self.atte_fc1 = nn.Conv1d(200,100,kernel_size=1)
+        # self.atte_fc2 = nn.Conv1d(200,1,kernel_size=1)
 
         self.maxPool = nn.MaxPool1d(200)
         self.avePool = nn.AvgPool1d(200)
 
-        from Ref_Data import NUM_TOPIC
-        self.fc2 = nn.Linear(4 + NUM_TOPIC + 27 ,32)
-        self.fc = nn.Linear(80*2 + 32,6)
+        from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
+        dim_features = 4
+        if USE_TOPIC:
+            dim_features += NUM_TOPIC
+        if USE_LETTERS:
+            dim_features +=27
+        self.fc2 = nn.Linear(dim_features  ,16)
+        self.fc = nn.Linear(100*2 + 16,6)
 
 
 
     def forward(self,sentences,features,volatile):
 
         x = self.embedding(sentences)
-        hidden = autograd.Variable(torch.zeros(2,x.size()[0],160),volatile=volatile).cuda()
+        # hidden = autograd.Variable(torch.zeros(2,x.size()[0],160),volatile=volatile).cuda()
+        hidden = autograd.Variable(torch.zeros(2, x.size()[0], 200), volatile=volatile)
         x,_ = self.GRU1(x,hidden)
-        x = x[:,:,:160] + x[:,:,160:]
-        hidden = autograd.Variable(torch.zeros(2, x.size()[0],80),volatile=volatile).cuda()
+        x = x[:,:,:200] + x[:,:,200:]
+        # hidden = autograd.Variable(torch.zeros(2, x.size()[0],80),volatile=volatile).cuda()
+        hidden = autograd.Variable(torch.zeros(2, x.size()[0], 100), volatile=volatile)
         x,hn = self.GRU2(x,hidden)
-        x = x[:, :, :80] + x[:, :,80:]          # n*200*size
+        x = x[:, :, :100] + x[:, :,100:]          # n*200*size
 
 
         y2 = self.maxPool(x.transpose(1,2)).squeeze()
@@ -108,22 +115,26 @@ class baseNet(nn.Module):
         y = nn.functional.sigmoid(y)
         return y
 
-
-
 class DnnModle:
 
     def __init__(self,dim, embedding_matrix,alpha=2,trainable=True,loss = 'focalLoss'):
         super(DnnModle,self).__init__()
 
-        self.basenet = nn.DataParallel(baseNet(dim, embedding_matrix,trainable)).cuda()
+        # self.basenet = nn.DataParallel(baseNet(dim, embedding_matrix,trainable)).cuda()
+
+        self.basenet = baseNet(dim, embedding_matrix,trainable)
 
         self.optimizer = torch.optim.RMSprop(
             [
-                {'params': self.basenet.module.GRU1.parameters()},
-                {'params': self.basenet.module.GRU2.parameters()},
-                {'params': self.basenet.module.fc.parameters()},
-                # {'params': self.basenet.module.fc2.parameters()},
-                # {'params':self.basenet.module.embedding.parameters() ,'lr':1e-5},
+            #     # {'params': self.basenet.module.GRU1.parameters()},
+            #     # {'params': self.basenet.module.GRU2.parameters()},
+            #     # {'params': self.basenet.module.fc.parameters()},
+            #     # {'params': self.basenet.module.fc2.parameters()},
+                {'params': self.basenet.GRU1.parameters()},
+                {'params': self.basenet.GRU2.parameters()},
+                {'params': self.basenet.fc.parameters()},
+                {'params': self.basenet.fc2.parameters()},
+            #     # {'params':self.basenet.module.embedding.parameters() ,'lr':1e-5},
             ],
             lr=0.001,
         )
@@ -137,25 +148,43 @@ class DnnModle:
             self.loss_f = nn.BCELoss()
 
     def fit(self,X,features,Y):
-        comment = torch.autograd.Variable(X.cuda())
-        Y = torch.autograd.Variable(Y.cuda())
-        features = torch.autograd.Variable(features.cuda())
-        y_pred = self.basenet(comment,features,volatile=False)
-        loss = self.loss_f(y_pred,Y)
+        # comment = torch.autograd.Variable(X.cuda())
+        # Y = torch.autograd.Variable(Y.cuda())
+        # features = torch.autograd.Variable(features.cuda())
+        # y_pred = self.basenet(comment,features,volatile=False)
+        # loss = self.loss_f(y_pred,Y)
+        # self.optimizer.zero_grad()
+        # loss.backward()
+        # self.optimizer.step()
+
+        comment = torch.autograd.Variable(X)
+        Y = torch.autograd.Variable(Y)
+        features = torch.autograd.Variable(features)
+        y_pred = self.basenet(comment, features, volatile=False)
+        loss = self.loss_f(y_pred, Y)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
 
-    def predict(self,X,batchsize=2048):
+    def predict(self,X,batchsize=1024):
+        # self.basenet.eval()
+        # comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()).cuda(), volatile=True)
+        # features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()).cuda(),volatile=True)
+        # y_pred = torch.zeros((len(comment),6)).cuda()
+        # for i in range(0,len(comment),batchsize):
+        #     y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize],features[i:i+batchsize],volatile=True).data
+        # self.basenet.train()
+        # return y_pred.cpu().numpy()
+
         self.basenet.eval()
-        comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()).cuda(), volatile=True)
-        features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()).cuda(),volatile=True)
-        y_pred = torch.zeros((len(comment),6)).cuda()
-        for i in range(0,len(comment),batchsize):
-            y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize],features[i:i+batchsize],volatile=True).data
+        comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()), volatile=True)
+        features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()), volatile=True)
+        y_pred = torch.zeros((len(comment), 6))
+        for i in range(0, len(comment), batchsize):
+            y_pred[i:i + batchsize] = self.basenet(comment[i:i + batchsize], features[i:i + batchsize], volatile=True).data
         self.basenet.train()
-        return y_pred.cpu().numpy()
+        return y_pred.numpy()
 
 
 

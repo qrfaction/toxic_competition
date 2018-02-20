@@ -32,6 +32,7 @@ def cv(get_model, X, Y, test,K=10,outputfile='baseline.csv.gz'):
 
             scores.append(model_score)
             results.append(test_pred)
+            break
 
     test_predicts = tool.cal_mean(results,scores)
     # test_predicts = tool.cal_mean(results, MEAN_TYPE)

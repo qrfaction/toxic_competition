@@ -52,10 +52,12 @@ usecols = [
     # 'username',
     # 'count_usernames',
 ]
-from Ref_Data import NUM_TOPIC
-usecols += ['topic' + str(i) for i in range(NUM_TOPIC)]
-usecols += ['distri_'+chr(i) for i in range(97,26+97)]
-usecols.append('distri_!')
+from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
+if USE_TOPIC:
+    usecols += ['topic' + str(i) for i in range(NUM_TOPIC)]
+if USE_LETTERS:
+    usecols += ['distri_'+chr(i) for i in range(97,26+97)]
+    usecols.append('distri_!')
 
 def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',300),)):
     """

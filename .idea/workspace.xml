@@ -16,78 +16,55 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="375">
-      <file leaf-file-name="prepocess.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/prepocess.py">
+      <file leaf-file-name="keras_nnBlock.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/keras_nnBlock.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-25">
-              <caret line="15" column="27" lean-forward="false" selection-start-line="15" selection-start-column="27" selection-end-line="15" selection-end-column="27" />
+            <state relative-caret-position="598">
+              <caret line="41" column="15" lean-forward="false" selection-start-line="41" selection-start-column="15" selection-end-line="41" selection-end-column="15" />
               <folding>
-                <element signature="e#0#11#0" expanded="true" />
-                <element signature="e#329#7283#0" expanded="false" />
-                <element signature="e#445#4390#0" expanded="false" />
-                <element signature="e#4912#7257#0" expanded="false" />
-                <element signature="e#7326#7894#0" expanded="false" />
-                <element signature="e#7927#8117#0" expanded="false" />
-                <element signature="e#8158#8451#0" expanded="false" />
+                <element signature="e#0#135#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="train.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/train.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1679">
-              <caret line="79" column="32" lean-forward="false" selection-start-line="79" selection-start-column="32" selection-end-line="79" selection-end-column="32" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="input.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/input.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="460">
-              <caret line="102" column="27" lean-forward="true" selection-start-line="100" selection-start-column="30" selection-end-line="102" selection-end-column="27" />
-              <folding>
-                <element signature="e#3697#3861#0" expanded="false" />
-                <element signature="e#3896#4449#0" expanded="false" />
-                <element signature="e#4677#4834#0" expanded="false" />
-                <element signature="e#4872#5052#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="nnBlock.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/nnBlock.py">
+      <file leaf-file-name="Ref_Data.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Ref_Data.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="414">
-              <caret line="83" column="37" lean-forward="false" selection-start-line="83" selection-start-column="37" selection-end-line="83" selection-end-column="37" />
+              <caret line="357" column="19" lean-forward="false" selection-start-line="357" selection-start-column="19" selection-end-line="357" selection-end-column="19" />
               <folding>
-                <element signature="e#1035#1496#0" expanded="false" />
+                <element signature="e#221#11495#0" expanded="false" />
+                <element signature="e#11543#39492#0" expanded="false" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="createFeature.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/createFeature.py">
+      <file leaf-file-name="input.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/input.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-23">
-              <caret line="68" column="61" lean-forward="false" selection-start-line="68" selection-start-column="61" selection-end-line="68" selection-end-column="61" />
+            <state relative-caret-position="318">
+              <caret line="57" column="15" lean-forward="false" selection-start-line="57" selection-start-column="15" selection-end-line="57" selection-end-column="15" />
               <folding>
-                <element signature="e#365#2084#0" expanded="false" />
-                <element signature="e#2121#2950#0" expanded="false" />
-                <element signature="e#3540#3701#0" expanded="false" />
-                <element signature="e#4021#7867#0" expanded="false" />
-                <element signature="e#8139#11258#0" expanded="false" />
+                <element signature="e#1490#3736#0" expanded="false" />
+                <element signature="e#3761#3925#0" expanded="false" />
+                <element signature="e#3960#4513#0" expanded="false" />
+                <element signature="e#4741#4898#0" expanded="false" />
+                <element signature="e#4936#5116#0" expanded="false" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
     </leaf>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
@@ -131,14 +108,17 @@
       <list>
         <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/embedding.py" />
-        <option value="$PROJECT_DIR$/tool.py" />
-        <option value="$PROJECT_DIR$/Ref_Data.py" />
         <option value="$PROJECT_DIR$/prepocess.py" />
-        <option value="$PROJECT_DIR$/train.py" />
         <option value="$PROJECT_DIR$/createFeature.py" />
         <option value="$PROJECT_DIR$/ConvAIData.py" />
+        <option value="$PROJECT_DIR$/train.py" />
+        <option value="$PROJECT_DIR$/tool.py" />
+        <option value="$PROJECT_DIR$/keras_tool.py" />
         <option value="$PROJECT_DIR$/input.py" />
         <option value="$PROJECT_DIR$/nnBlock.py" />
+        <option value="$PROJECT_DIR$/keras_train.py" />
+        <option value="$PROJECT_DIR$/keras_nnBlock.py" />
+        <option value="$PROJECT_DIR$/Ref_Data.py" />
       </list>
     </option>
   </component>
@@ -169,7 +149,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -181,7 +161,7 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scratches" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -293,17 +273,17 @@
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17348066" sideWeight="0.50208336" order="0" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17348066" sideWeight="0.49791667" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17348066" sideWeight="0.49791667" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31823203" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1421875" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.12708333" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -321,11 +301,147 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="25" />
+      <option name="time" value="28" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/prepocess.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="115">
+          <caret line="15" column="27" lean-forward="false" selection-start-line="15" selection-start-column="27" selection-end-line="15" selection-end-column="27" />
+          <folding>
+            <element signature="e#0#11#0" expanded="true" />
+            <element signature="e#329#7283#0" expanded="false" />
+            <element signature="e#329#404#1" expanded="false" />
+            <element signature="e#445#4390#0" expanded="false" />
+            <element signature="e#4912#7257#0" expanded="false" />
+            <element signature="e#7326#7894#0" expanded="false" />
+            <element signature="e#7927#8117#0" expanded="false" />
+            <element signature="e#8158#8451#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="621">
+          <caret line="33" column="23" lean-forward="false" selection-start-line="33" selection-start-column="23" selection-end-line="33" selection-end-column="23" />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/nnBlock.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="989">
+          <caret line="83" column="37" lean-forward="false" selection-start-line="83" selection-start-column="37" selection-end-line="83" selection-end-column="37" />
+          <folding>
+            <element signature="e#0#21#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/createFeature.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="69">
+          <caret line="12" column="26" lean-forward="false" selection-start-line="12" selection-start-column="26" selection-end-line="12" selection-end-column="26" />
+          <folding>
+            <element signature="e#282#3912#0" expanded="false" />
+            <element signature="e#365#2084#0" expanded="false" />
+            <element signature="e#2121#2950#0" expanded="false" />
+            <element signature="e#3540#3701#0" expanded="false" />
+            <element signature="e#4021#7867#0" expanded="false" />
+            <element signature="e#7903#7953#0" expanded="false" />
+            <element signature="e#7989#8103#0" expanded="false" />
+            <element signature="e#8139#11258#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/input.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="828">
+          <caret line="40" column="25" lean-forward="true" selection-start-line="40" selection-start-column="25" selection-end-line="40" selection-end-column="25" />
+          <folding>
+            <element signature="e#1490#3736#0" expanded="false" />
+            <element signature="e#3761#3925#0" expanded="false" />
+            <element signature="e#3960#4513#0" expanded="false" />
+            <element signature="e#4741#4898#0" expanded="false" />
+            <element signature="e#4936#5116#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/prepocess.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="345">
+          <caret line="15" column="27" lean-forward="false" selection-start-line="15" selection-start-column="27" selection-end-line="15" selection-end-column="27" />
+          <folding>
+            <element signature="e#0#11#0" expanded="true" />
+            <element signature="e#329#7283#0" expanded="false" />
+            <element signature="e#329#404#1" expanded="false" />
+            <element signature="e#445#4390#0" expanded="false" />
+            <element signature="e#4912#7257#0" expanded="false" />
+            <element signature="e#7326#7894#0" expanded="false" />
+            <element signature="e#7927#8117#0" expanded="false" />
+            <element signature="e#8158#8451#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2162">
+          <caret line="100" column="60" lean-forward="false" selection-start-line="100" selection-start-column="60" selection-end-line="100" selection-end-column="60" />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/input.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2254">
+          <caret line="102" column="27" lean-forward="true" selection-start-line="100" selection-start-column="30" selection-end-line="102" selection-end-column="27" />
+          <folding>
+            <element signature="e#1490#3736#0" expanded="false" />
+            <element signature="e#3761#3925#0" expanded="false" />
+            <element signature="e#3960#4513#0" expanded="false" />
+            <element signature="e#4741#4898#0" expanded="false" />
+            <element signature="e#4936#5116#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/nnBlock.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1357">
+          <caret line="76" column="53" lean-forward="true" selection-start-line="76" selection-start-column="53" selection-end-line="76" selection-end-column="53" />
+          <folding>
+            <element signature="e#0#21#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/createFeature.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="322">
+          <caret line="68" column="61" lean-forward="false" selection-start-line="68" selection-start-column="61" selection-end-line="68" selection-end-column="61" />
+          <folding>
+            <element signature="e#282#3912#0" expanded="false" />
+            <element signature="e#365#2084#0" expanded="false" />
+            <element signature="e#2121#2950#0" expanded="false" />
+            <element signature="e#3540#3701#0" expanded="false" />
+            <element signature="e#4021#7867#0" expanded="false" />
+            <element signature="e#7903#7953#0" expanded="false" />
+            <element signature="e#7989#8103#0" expanded="false" />
+            <element signature="e#8139#11258#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/prepocess.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1081">
@@ -333,6 +449,7 @@
           <folding>
             <element signature="e#0#11#0" expanded="true" />
             <element signature="e#329#7283#0" expanded="false" />
+            <element signature="e#329#404#1" expanded="false" />
             <element signature="e#445#4390#0" expanded="false" />
             <element signature="e#4912#7257#0" expanded="false" />
             <element signature="e#7326#7894#0" expanded="false" />
@@ -357,9 +474,8 @@
         <state relative-caret-position="368">
           <caret line="69" column="0" lean-forward="false" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
           <folding>
+            <element signature="e#0#31#0" expanded="false" />
             <element signature="e#221#331#0" expanded="false" />
-            <element signature="e#367#820#0" expanded="false" />
-            <element signature="e#879#2213#0" expanded="false" />
             <element signature="e#922#1414#0" expanded="false" />
             <element signature="e#1466#2091#0" expanded="false" />
             <element signature="e#2271#2433#0" expanded="false" />
@@ -375,6 +491,7 @@
           <folding>
             <element signature="e#0#11#0" expanded="true" />
             <element signature="e#329#7283#0" expanded="false" />
+            <element signature="e#329#404#1" expanded="false" />
             <element signature="e#445#4390#0" expanded="false" />
             <element signature="e#4912#7257#0" expanded="false" />
             <element signature="e#7326#7894#0" expanded="false" />
@@ -389,7 +506,7 @@
         <state relative-caret-position="3036">
           <caret line="137" column="45" lean-forward="true" selection-start-line="137" selection-start-column="45" selection-end-line="137" selection-end-column="45" />
           <folding>
-            <element signature="e#1035#1496#0" expanded="false" />
+            <element signature="e#0#21#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -398,15 +515,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="782">
           <caret line="103" column="23" lean-forward="false" selection-start-line="103" selection-start-column="23" selection-end-line="103" selection-end-column="23" />
-          <folding>
-            <element signature="e#294#572#0" expanded="false" />
-            <element signature="e#1292#1401#0" expanded="false" />
-            <element signature="e#1436#1859#0" expanded="false" />
-            <element signature="e#1883#3767#0" expanded="false" />
-            <element signature="e#3810#4295#0" expanded="false" />
-            <element signature="e#4321#5692#0" expanded="false" />
-            <element signature="e#5727#6317#0" expanded="false" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -414,7 +523,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1679">
           <caret line="79" column="67" lean-forward="true" selection-start-line="79" selection-start-column="67" selection-end-line="79" selection-end-column="67" />
-          <folding />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -432,22 +543,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tool.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="570">
-          <caret line="47" column="0" lean-forward="false" selection-start-line="47" selection-start-column="0" selection-end-line="47" selection-end-column="0" />
-          <folding>
-            <element signature="e#294#572#0" expanded="false" />
-            <element signature="e#1292#1401#0" expanded="false" />
-            <element signature="e#1436#1859#0" expanded="false" />
-            <element signature="e#1883#3767#0" expanded="false" />
-            <element signature="e#3810#4295#0" expanded="false" />
-            <element signature="e#4321#5692#0" expanded="false" />
-            <element signature="e#5727#6317#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="322">
@@ -455,37 +550,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Ref_Data.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="18193">
-          <caret line="1130" column="59" lean-forward="false" selection-start-line="1130" selection-start-column="56" selection-end-line="1130" selection-end-column="59" />
-          <folding>
-            <element signature="e#221#11495#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/createFeature.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-23">
-          <caret line="68" column="61" lean-forward="false" selection-start-line="68" selection-start-column="61" selection-end-line="68" selection-end-column="61" />
-          <folding>
-            <element signature="e#365#2084#0" expanded="false" />
-            <element signature="e#2121#2950#0" expanded="false" />
-            <element signature="e#3540#3701#0" expanded="false" />
-            <element signature="e#4021#7867#0" expanded="false" />
-            <element signature="e#8139#11258#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ConvAIData.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="228">
           <caret line="88" column="18" lean-forward="false" selection-start-line="88" selection-start-column="18" selection-end-line="88" selection-end-column="18" />
-          <folding>
-            <element signature="e#1157#1511#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -504,13 +572,56 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/createFeature.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="69">
+          <caret line="12" column="26" lean-forward="false" selection-start-line="12" selection-start-column="26" selection-end-line="12" selection-end-column="26" />
+          <folding>
+            <element signature="e#282#3912#0" expanded="false" />
+            <element signature="e#365#2084#0" expanded="false" />
+            <element signature="e#2121#2950#0" expanded="false" />
+            <element signature="e#3540#3701#0" expanded="false" />
+            <element signature="e#4021#7867#0" expanded="false" />
+            <element signature="e#7903#7953#0" expanded="false" />
+            <element signature="e#7989#8103#0" expanded="false" />
+            <element signature="e#8139#11258#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tool.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/keras_tool.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="803">
+          <caret line="211" column="0" lean-forward="true" selection-start-line="211" selection-start-column="0" selection-end-line="211" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#35#0" expanded="false" />
+            <element signature="e#244#522#0" expanded="false" />
+            <element signature="e#1242#1351#0" expanded="false" />
+            <element signature="e#1443#2087#0" expanded="false" />
+            <element signature="e#2141#2825#0" expanded="false" />
+            <element signature="e#3302#3787#0" expanded="false" />
+            <element signature="e#3813#5184#0" expanded="false" />
+            <element signature="e#5219#5809#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/prepocess.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-25">
+        <state relative-caret-position="0">
           <caret line="15" column="27" lean-forward="false" selection-start-line="15" selection-start-column="27" selection-end-line="15" selection-end-column="27" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
             <element signature="e#329#7283#0" expanded="false" />
+            <element signature="e#329#404#1" expanded="false" />
             <element signature="e#445#4390#0" expanded="false" />
             <element signature="e#4912#7257#0" expanded="false" />
             <element signature="e#7326#7894#0" expanded="false" />
@@ -520,33 +631,67 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/train.py">
+    <entry file="file://$PROJECT_DIR$/keras_train.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1679">
-          <caret line="79" column="32" lean-forward="false" selection-start-line="79" selection-start-column="32" selection-end-line="79" selection-end-column="32" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/input.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="460">
-          <caret line="102" column="27" lean-forward="true" selection-start-line="100" selection-start-column="30" selection-end-line="102" selection-end-column="27" />
+        <state relative-caret-position="1196">
+          <caret line="96" column="36" lean-forward="true" selection-start-line="96" selection-start-column="36" selection-end-line="96" selection-end-column="36" />
           <folding>
-            <element signature="e#3697#3861#0" expanded="false" />
-            <element signature="e#3896#4449#0" expanded="false" />
-            <element signature="e#4677#4834#0" expanded="false" />
-            <element signature="e#4872#5052#0" expanded="false" />
+            <element signature="e#343#1197#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/nnBlock.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="414">
-          <caret line="83" column="37" lean-forward="false" selection-start-line="83" selection-start-column="37" selection-end-line="83" selection-end-column="37" />
+        <state relative-caret-position="598">
+          <caret line="86" column="29" lean-forward="true" selection-start-line="82" selection-start-column="8" selection-end-line="86" selection-end-column="29" />
           <folding>
-            <element signature="e#1035#1496#0" expanded="false" />
+            <element signature="e#0#21#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="161">
+          <caret line="25" column="40" lean-forward="false" selection-start-line="25" selection-start-column="40" selection-end-line="25" selection-end-column="40" />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/keras_nnBlock.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="598">
+          <caret line="41" column="15" lean-forward="false" selection-start-line="41" selection-start-column="15" selection-end-line="41" selection-end-column="15" />
+          <folding>
+            <element signature="e#0#135#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Ref_Data.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="414">
+          <caret line="357" column="19" lean-forward="false" selection-start-line="357" selection-start-column="19" selection-end-line="357" selection-end-column="19" />
+          <folding>
+            <element signature="e#221#11495#0" expanded="false" />
+            <element signature="e#11543#39492#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/input.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="318">
+          <caret line="57" column="15" lean-forward="false" selection-start-line="57" selection-start-column="15" selection-end-line="57" selection-end-column="15" />
+          <folding>
+            <element signature="e#1490#3736#0" expanded="false" />
+            <element signature="e#3761#3925#0" expanded="false" />
+            <element signature="e#3960#4513#0" expanded="false" />
+            <element signature="e#4741#4898#0" expanded="false" />
+            <element signature="e#4936#5116#0" expanded="false" />
           </folding>
         </state>
       </provider>
