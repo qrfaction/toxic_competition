@@ -4,7 +4,7 @@ import numpy as np
 import multiprocessing as mlp
 import input
 from nltk.tokenize import TweetTokenizer
-from Ref_Data import PATH
+from Ref_Data import PATH,FILTER_FREQ
 
 
 def tokenize_worker(sentences):
@@ -52,7 +52,7 @@ def tokenize_sentences(sentences,filter_word=True):
         for sentence in tqdm(sentences):
             seq = []
             for word in sentence:
-                if filter_word and frequency[word]<=3:
+                if filter_word and frequency[word]<= FILTER_FREQ:
                     continue
                 if word not in words_dict:
                     words_dict[word] = len(words_dict)+1

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 PATH='data/'
 
 def cal_mean():
@@ -26,7 +27,22 @@ def get_corr():
     dataset = pd.read_csv(PATH+'clean_train.csv',usecols=usecol)
     print(dataset.corr())
 
+def test():
+    a = pd.read_csv('data/labels.csv')
+    a= a.loc[a['toxic']==0,"severe_toxic"]
+    print(a)
+    print(a.sum())
 
+def post_deal():
+    output = pd.read_csv('baseline.csv.gz')
+
+    def deal(row):
+        if row["severe_toxic"]>0.5 and row["toxic"] <0.5 :
+            print(111111)
+            row['severe_toxic'] = 0
+        return row
+    output = output.apply(deal,axis=1)
+    output.to_csv('output.csv.gz', index=False, compression='gzip')
 
 def bagging():
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
@@ -57,8 +73,8 @@ def bagging():
 
     output.to_csv('output.csv.gz',index=False,compression='gzip')
 
-
-cal_mean()
+post_deal()
+# cal_mean()
 # post_deal()
 # bagging()
 # get_corr()

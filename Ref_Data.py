@@ -7,11 +7,22 @@ replace_word = {
     "time":" _time_ ",
 }
 
+USE_TOPIC = True
+USE_LETTERS = True
+
+WEIGHT_FILE = 'weight/'
 PATH = 'data/'
 
 NUM_TOPIC = 8
 
 BATCHSIZE = 256
+
+FILTER_FREQ = 3
+
+model_setting = {
+    'hidden_size1' :160,
+    'hidden_size2' :80,
+}
 
 blocked_ips = ["216.102.6.176",
                "216.120.176.2",
@@ -354,8 +365,7 @@ blocked_ips = ["216.102.6.176",
                "96.31.10.178",
                "50.251.229.75"]
 
-USE_TOPIC = True
-USE_LETTERS = False
+
 
 
 APPO = {

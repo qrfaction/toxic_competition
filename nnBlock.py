@@ -3,7 +3,8 @@ import torch
 import torch.autograd as autograd
 import torch.nn.functional as F
 from tqdm import tqdm
-from Ref_Data import BATCHSIZE
+from Ref_Data import BATCHSIZE,model_setting
+from Nadam import Nadam
 
 class auc_loss(nn.Module):
     def __init__(self,batchsize=BATCHSIZE//2):
@@ -57,7 +58,7 @@ class baseNet(nn.Module):
         self.dropout = nn.Dropout(p=0.3)
         self.GRU1 = nn.GRU(
             input_size=dim,
-            hidden_size=200,
+            hidden_size=model_setting['hidden_size1'],
             num_layers=1,
             batch_first=True,
             bidirectional=True,
@@ -65,8 +66,8 @@ class baseNet(nn.Module):
         )
 
         self.GRU2 = nn.GRU(
-            input_size=200,
-            hidden_size=100,
+            input_size=model_setting['hidden_size1'],
+            hidden_size=model_setting['hidden_size2'],
             num_layers=1,
             batch_first=True,
             bidirectional=True,
@@ -85,46 +86,47 @@ class baseNet(nn.Module):
             dim_features += NUM_TOPIC
         if USE_LETTERS:
             dim_features +=27
-        self.fc2 = nn.Linear(dim_features  ,16)
-        self.fc = nn.Linear(100*2 + 16,6)
+        # self.fc2 = nn.Linear(dim_features  ,model_setting['fc_feature'])
 
+        dim_fc = model_setting['hidden_size2']*2 + dim_features
+        self.fc = nn.Linear(dim_fc ,6)
 
 
     def forward(self,sentences,features,volatile):
 
         x = self.embedding(sentences)
-        # hidden = autograd.Variable(torch.zeros(2,x.size()[0],160),volatile=volatile).cuda()
-        hidden = autograd.Variable(torch.zeros(2, x.size()[0], 200), volatile=volatile)
+        # hidden = autograd.Variable(torch.zeros(2,x.size()[0],model_setting['hidden_size1']),volatile=volatile).cuda()
+        hidden = autograd.Variable(torch.zeros(2, x.size()[0], model_setting['hidden_size1']), volatile=volatile)
         x,_ = self.GRU1(x,hidden)
-        x = x[:,:,:200] + x[:,:,200:]
-        # hidden = autograd.Variable(torch.zeros(2, x.size()[0],80),volatile=volatile).cuda()
-        hidden = autograd.Variable(torch.zeros(2, x.size()[0], 100), volatile=volatile)
+        x = x[:,:,:model_setting['hidden_size1']] + x[:,:,model_setting['hidden_size1']:]
+        # hidden = autograd.Variable(torch.zeros(2, x.size()[0],model_setting['hidden_size2']),volatile=volatile).cuda()
+        hidden = autograd.Variable(torch.zeros(2, x.size()[0], model_setting['hidden_size2']), volatile=volatile)
         x,hn = self.GRU2(x,hidden)
-        x = x[:, :, :100] + x[:, :,100:]          # n*200*size
+        x = x[:, :, :model_setting['hidden_size2']] + x[:, :,model_setting['hidden_size2']:]          # n*200*size
 
 
         y2 = self.maxPool(x.transpose(1,2)).squeeze()
         y3 = self.avePool(x.transpose(1,2)).squeeze()
 
-        features =self.fc2(features)
-        features = nn.functional.tanh(features)
+        # features = self.fc2(features)
+        # features = nn.functional.tanh(features)
         y = torch.cat((y2,y3,features),1)
 
         # y = x.sum(dim=1)
-        y = self.fc(y)
-        y = nn.functional.sigmoid(y)
-        return y
+        output = nn.functional.sigmoid(self.fc(y))
+        return output
 
 class DnnModle:
 
-    def __init__(self,dim, embedding_matrix,alpha=2,trainable=True,loss = 'focalLoss'):
+    def __init__(self,dim, embedding_matrix,alpha=3,trainable=True,loss = 'focalLoss'):
         super(DnnModle,self).__init__()
 
         # self.basenet = nn.DataParallel(baseNet(dim, embedding_matrix,trainable)).cuda()
 
-        self.basenet = baseNet(dim, embedding_matrix,trainable)
+        # self.basenet = baseNet(dim, embedding_matrix,trainable).cuda()
+        self.basenet = baseNet(dim, embedding_matrix, trainable)
 
-        self.optimizer = torch.optim.RMSprop(
+        self.optimizer = Nadam(
             [
             #     # {'params': self.basenet.module.GRU1.parameters()},
             #     # {'params': self.basenet.module.GRU2.parameters()},
@@ -133,7 +135,7 @@ class DnnModle:
                 {'params': self.basenet.GRU1.parameters()},
                 {'params': self.basenet.GRU2.parameters()},
                 {'params': self.basenet.fc.parameters()},
-                {'params': self.basenet.fc2.parameters()},
+                # {'params': self.basenet.fc2.parameters()},
             #     # {'params':self.basenet.module.embedding.parameters() ,'lr':1e-5},
             ],
             lr=0.001,
@@ -153,6 +155,7 @@ class DnnModle:
         # features = torch.autograd.Variable(features.cuda())
         # y_pred = self.basenet(comment,features,volatile=False)
         # loss = self.loss_f(y_pred,Y)
+        # print(loss)
         # self.optimizer.zero_grad()
         # loss.backward()
         # self.optimizer.step()
@@ -162,6 +165,7 @@ class DnnModle:
         features = torch.autograd.Variable(features)
         y_pred = self.basenet(comment, features, volatile=False)
         loss = self.loss_f(y_pred, Y)
+        print(loss)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

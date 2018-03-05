@@ -6,8 +6,11 @@ import numpy as np
 import multiprocessing as mlp
 from tqdm import tqdm
 from gensim.matutils import corpus2csc
-from Ref_Data import replace_word
+from Ref_Data import replace_word,FILTER_FREQ,NUM_TOPIC
 import pandas as pd
+from sklearn.decomposition import PCA,KernelPCA
+from sklearn.feature_extraction.text import TfidfVectorizer
+from embedding import tokenize_word
 PATH = 'data/'
 
 def countFeature(dataset):
@@ -90,14 +93,11 @@ def countFeature(dataset):
     dataset = letter_distribution(dataset)
     return dataset
 
-
 ''' 封装TF-IDF '''
-
 
 def tfidfFeature(clean_corpus, mode="other", params_tfidf=None, n_components=128):
     ''' TF-IDF Vectorizer '''
-    from sklearn.decomposition import PCA
-    from sklearn.feature_extraction.text import TfidfVectorizer
+
     def getTfidfVector(clean_corpus,  # 之后的参数都是TfidfVectorizer()的参数
                        min_df=100, max_features=100000,
                        strip_accents='unicode', analyzer='word', ngram_range=(1, 1),
@@ -183,7 +183,6 @@ def lda_infer(dataset,model):
     return corpus2csc(topic_probability_mat).transpose().toarray().tolist()
 
 def LDAFeature(num_topics=6):
-    from embedding import tokenize_word
     from gensim.corpora import Dictionary
     from gensim.models.ldamulticore import LdaMulticore
 
@@ -236,7 +235,7 @@ def LDAFeature(num_topics=6):
             freq[word] +=1
 
 
-    text = [ [ word  for word in sentence if freq[word] > 4] for sentence in tqdm(text) ]
+    text = [ [ word  for word in sentence if freq[word] > FILTER_FREQ] for sentence in tqdm(text) ]
 
     dictionary = Dictionary(text)     # 生成 (id,word) 字典
 
@@ -282,6 +281,131 @@ def LDAFeature(num_topics=6):
     test.to_csv(PATH + 'clean_test.csv', index=False)
 
 
+def get_tag(text,pos_tag):
+    result = []
+    for t in tqdm(text):
+        text_tag = []
+        for word,tag in pos_tag(t):
+            text_tag.append(tag.lower())
+        text_tag = ' '.join(text_tag)
+        result.append(text_tag)
+    return result
+
+def get_pos_tag_vec():
+    from nltk import pos_tag
+    train = input.read_dataset('clean_train.csv')
+    test = input.read_dataset('clean_test.csv')
+    train['comment_text'] = train['comment_text'].fillna(replace_word['unknow'])
+    test['comment_text'] = test['comment_text'].fillna(replace_word['unknow'])
+    text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
+    text = tokenize_word(text)
+
+    def get_tag_text(text):
+        results = []
+        pool = mlp.Pool(mlp.cpu_count())
+
+        comments = list(text)
+        aver_t = int(len(text) / mlp.cpu_count()) + 1
+        for i in range(mlp.cpu_count()):
+            result = pool.apply_async(get_tag, args=(comments[i * aver_t: (i + 1) * aver_t],pos_tag))
+            results.append(result)
+        pool.close()
+        pool.join()
+
+        text_tag = []
+        for result in results:
+            text_tag.extend(result.get())
+        return text_tag
+
+    def getTfidfVector(clean_corpus,
+                       min_df=0,max_features=int(1e10),
+                       ngram_range=(1, 1),use_idf=False,sublinear_tf=True):
+        def tokenizer(t):
+            return t.split()
+        tfv = TfidfVectorizer(min_df=min_df, max_features=max_features,tokenizer=tokenizer,
+                              strip_accents=None, analyzer="word", ngram_range=ngram_range,
+                              use_idf=use_idf, sublinear_tf=sublinear_tf)
+        tag_tfidf = tfv.fit_transform(clean_corpus)
+        return tag_tfidf,list(tfv.get_feature_names())
+
+
+    text_tag = get_tag_text(text)
+    train['pos_tag_text'] = text_tag[:len(train)]
+    test['pos_tag_text'] = text_tag[len(train):]
+    train.to_csv(PATH+'clean_train.csv',index=False)
+    test.to_csv(PATH+'clean_test.csv',index=False)
+
+    tag_tfidf ,columns= getTfidfVector(text_tag)
+    n_components = 22   # 输出pca.lambda_ 选择99%的成分即可
+    pca = KernelPCA(n_components=n_components,kernel='rbf',n_jobs=-1)
+    pca_tfidf = pca.fit_transform(tag_tfidf.transpose()).transpose()
+
+    postag_vec = pd.DataFrame(pca_tfidf,columns=columns)
+    postag_vec.to_csv(PATH+'postagVec.csv',index=False)
+
+def createKmeansFeature(usecols,name,k=6):
+    from sklearn.cluster import KMeans
+    train = input.read_dataset('clean_train.csv')
+    test = input.read_dataset('clean_test.csv')
+    data = train.append(test)[usecols].values
+
+    # def distMeas(vecA, vecB):
+    #     return np.sqrt(np.sum(np.power(vecA - vecB, 2), axis=1))
+    #
+    # def KMeans(dataSet, k):
+    #     """
+    #     k-means 聚类算法
+    #     该算法会创建k个质心，然后将每个点分配到最近的质心，再重新计算质心。这个过程重复数次，直到数据点的簇分配结果不再改变为止。
+    #     """
+    #     def createRandCent(dataSet, k):
+    #         """
+    #         为给定数据集构建一个包含k个随机质心的集合。
+    #         """
+    #         n = dataSet.shape[1]  # 列的数量
+    #         feature_min = dataSet.min(axis=0)  # 获取每个特征的下界
+    #         feature_range = dataSet.max(axis=0) - feature_min
+    #         centroids = feature_min + feature_range * np.random.random((k, n))
+    #         return centroids
+    #
+    #     m = dataSet.shape[0]  # 行数
+    #     clusterAssment = np.zeros(m)  # 创建一个与 dataSet 行数一样，但是有两列的矩阵，用来保存簇分配结果（一列簇索引值、一列误差）
+    #     centroids = createRandCent(dataSet, k)  # 创建质心，随机k个质心
+    #     distance = np.zeros((m, k))
+    #     clusterChanged = True
+    #     while clusterChanged:
+    #         for j in range(k):
+    #             distance[:, j] = distMeas(centroids[j, :], dataSet)
+    #
+    #         sample_cluster = distance.argmin(axis=1)  # 获取所属的簇
+    #         num_change = np.sum(clusterAssment != sample_cluster)  # 有多少样本所属簇变了
+    #         if num_change == 0:
+    #             clusterChanged = False
+    #         clusterAssment = sample_cluster
+    #
+    #         for center in range(k):  # 更新质心的位置
+    #             ptsInClust = dataSet[clusterAssment == center]  # 获取该簇中的所有点
+    #             centroids[center, :] = np.mean(ptsInClust, axis=0)
+    #         # 处理nan
+    #         centroids = np.nan_to_num(centroids)
+    #     return centroids
+
+    # samples = data[usecols].values
+    # centroids = KMeans(samples ,k)       # kMeans聚类
+
+    # for j in range(k):  # k为质心数
+    #     data["kmeans" + str(j + 1)] = \
+    #         distMeas(centroids[j, :], samples)  # 计算数据点到各个质心的距离
+
+    model = KMeans(6,max_iter=3000,tol=1e-6,n_jobs=-1)
+    features = model.fit_transform(data)
+    for i in range(k):
+        train[name+'_kmean_'+str(i)] = features[:len(train),i]
+        test[name+'_kmean_'+str(i)] = features[len(train):, i]
+
+    train.to_csv(PATH + 'clean_train.csv', index=False)
+    test.to_csv(PATH + 'clean_test.csv', index=False)
+
+
+
 if __name__ == '__main__':
-    from Ref_Data import NUM_TOPIC
-    LDAFeature(NUM_TOPIC)
+    get_pos_tag_vec()

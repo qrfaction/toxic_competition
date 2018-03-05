@@ -90,7 +90,6 @@ def cleanComment(comments):
         comment = comment.lower()
         # 去除邮箱    邮箱先去 再去IP
 
-
         comment = re.sub(patternEmail, replace_word['link'], comment)
         # 去除IP
         comment = re.sub(patternIP, replace_word['link'], comment)
