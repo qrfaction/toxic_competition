@@ -3,7 +3,7 @@ import input
 from sklearn.cross_validation import KFold
 import numpy as np
 import tool
-from Ref_Data import  BATCHSIZE,WEIGHT_FILE
+from Ref_Data import  BATCHSIZE,WEIGHT_FILE,USE_CHAR_VEC
 
 
 def cv(model_para, X, Y, test,K=10,outputfile='baseline.csv.gz'):
@@ -13,7 +13,8 @@ def cv(model_para, X, Y, test,K=10,outputfile='baseline.csv.gz'):
             embedding_matrix=model_para['embedding_matrix'],
             trainable=model_para['trainable'],
             load_weight =model_para['load_weight'],
-            loss=model_para['loss']
+            loss=model_para['loss'],
+            char_weight = model_para['char_weight']
         )
         m.get_layer(model_para['modelname'])
         return m
@@ -61,7 +62,7 @@ def _train_model(model,model_name ,train_x, train_y, val_x, val_y,test ,batchsiz
         samples_x,samples_y = generator.genrerate_samples()
         model.fit(samples_x,samples_y,batch_size=batchsize,epochs=1,verbose=1)
 
-        if epoch >= 20:
+        if epoch >= 10:
             # evaulate
             y_pred = model.predict(val_x, batch_size=2048, verbose=1)
             Scores = []
@@ -72,7 +73,7 @@ def _train_model(model,model_name ,train_x, train_y, val_x, val_y,test ,batchsiz
             print(cur_score)
             print(Scores)
 
-            if epoch == 20 or best_score < cur_score:
+            if epoch == 10 or best_score < cur_score:
                 best_score = cur_score
                 best_epoch = epoch
                 print(best_score,best_epoch,'\n')
@@ -90,7 +91,12 @@ def train(maxlen=200):
                     ('crawl', 300),
                     # ('fasttext',300),
                 )
-    trainset, testset, labels ,embedding_matrix = \
+    if USE_CHAR_VEC:
+        trainset, testset, labels, embedding_matrix,char_weight = \
+            input.get_train_test(maxlen, trainfile='clean_train.csv', wordvecfile=wordvecfile)
+        embedding_matrix = embedding_matrix['crawl']
+    else:
+        trainset, testset, labels ,embedding_matrix = \
         input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
     embedding_matrix = embedding_matrix['crawl']
 
@@ -104,8 +110,11 @@ def train(maxlen=200):
         'trainable':False,
         'loss':'focalLoss',
         'load_weight' :False,
-        'modelname':'cnnGLU',
+        'modelname':'rnn',
+        'char_weight':None
     }
+    if USE_CHAR_VEC:
+        model_para['char_weight'] = char_weight
 
     cv(model_para,trainset,labels,testset,outputfile='baseline.csv.gz',K=5)
 

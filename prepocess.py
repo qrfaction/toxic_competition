@@ -74,10 +74,6 @@ def cleanComment(comments):
         comment = re.sub('@', 'a', comment)
         comment = re.sub('\$', 's', comment)
 
-
-        for i in range(97,97+26):
-            ch = chr(i)
-            comment = re.sub(ch +'{3,}',ch , comment)
         return comment
 
     patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
@@ -118,10 +114,6 @@ def cleanComment(comments):
         # 分词
         words = tknzr.tokenize(comment)
 
-        # 提取词干
-        # words = [lem.lemmatize(word) for word in words]
-
-        # 拼写纠正 以及 you're -> you are
         words = [APPO[word] if word in APPO else word for word in words]
 
         # 数字统一
@@ -142,10 +134,12 @@ def cleanComment(comments):
 
         # 分词
         words = tknzr.tokenize(comment)
-        # 拼写纠正 以及 you're -> you are
         words = [APPO[word] if word in APPO else word for word in words]
-        # words = [lem.lemmatize(word) for word in words]
+
         comment = " ".join(words)
+        for i in range(97,97+26):
+            ch = chr(i)
+            comment = re.sub(ch +'{3,}',ch , comment)
 
         # 纠正拼写错误/
         # for word,pos in tknzr(comment):
@@ -209,6 +203,7 @@ def pipeline(
         dataset = createFeature.countFeature(dataset)
         clean_dataset(dataset,'clean_'+filename)
 
+    createFeature.get_char_text()
     from ConvAIData import get_label_feature
     get_label_feature()
 

@@ -135,10 +135,29 @@ def batch_char_analyzer(sentences,to_string=True):
         ch_seqs.append(seq)
     return ch_seqs
 
+# def generator_char_vec(wordvecfile='crawl'):
 
 
 
 
+    # embeddings_index = input.read_wordvec(wordvecfile)
+    #
+    # words = embeddings_index.keys()
+    # chars = []
+    # for w in words:
+    #     chars.append(char_analyzer(w))
+
+def get_char_num_seq(char_texts):
+    with open(PATH+'char2index.json','r') as f:
+        import json
+        char2index = json.loads(f.read())
+    seqs = []
+    for text in char_texts:
+        seq = []
+        for char in text.split():
+            seq.append(char2index[char])
+        seqs.append(seq)
+    return seqs
 
 
 

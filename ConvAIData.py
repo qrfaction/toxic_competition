@@ -53,7 +53,7 @@ def get_label_feat(trainfile,target):
     from sklearn.linear_model import Ridge
     from sklearn.model_selection import cross_val_score
 
-    ridge = Ridge()
+    ridge = Ridge(tol=1e-5,max_iter=2000,alpha=2.25)
     mse_score = -cross_val_score(ridge, X, Y, scoring='neg_mean_squared_error')
     print(mse_score.mean())
 

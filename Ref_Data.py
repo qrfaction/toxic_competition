@@ -24,7 +24,9 @@ BATCHSIZE = 256
 
 FILTER_FREQ = 3
 
+USE_CHAR_VEC =False
 
+LEN_CHAR_SEQ = 800
 
 model_setting = {
     'hidden_size1' :160,

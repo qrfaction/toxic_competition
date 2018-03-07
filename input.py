@@ -2,7 +2,7 @@ import embedding
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
-from Ref_Data import replace_word,PATH,USE_POSTAG
+from Ref_Data import replace_word,PATH,USE_POSTAG,USE_CHAR_VEC,WEIGHT_FILE,LEN_CHAR_SEQ
 
 wordvec={
     'glove42':PATH+'glove.42B.300d.txt',
@@ -49,7 +49,8 @@ if USE_TOPIC:
 if USE_LETTERS:
     usecols += ['distri_'+chr(i) for i in range(97,26+97)]
     usecols.append('distri_!')
-
+if USE_CHAR_VEC:
+    usecols.append('char_text')
 
 def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',300),)):
     """
@@ -67,43 +68,46 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
     test['comment_text'].fillna(replace_word['unknow'], inplace=True)
     text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
 
-    from keras.preprocessing.sequence import pad_sequences
+
     print('tokenize word')
     print(wordvecfile[0])
 
 
     sentences, word_index, frequency = embedding.tokenize_sentences(text)
 
-
+    from keras.preprocessing.sequence import pad_sequences
     sentences = pad_sequences(sentences, maxlen=maxlen, truncating='post')
     sequences = np.array(sentences)
 
     trainseq = sequences[:len(train)]
     testseq = sequences[len(train):]
-    assert len(trainseq) == len(train)
-    assert len(testseq) == len(test)
 
-    normilze_feature = [
-        # 'toxicity_score_level',
-        'quoting_attacklevel',
-        # 'recipient_attack_level',
-        'third_party_attacklevel',
-        'other_attacklevel',
-        # 'toxicity_level',
-        'attacklevel',
+    def normlizer(train,test):
+        normilze_feature = [
+            # 'toxicity_score_level',
+            'quoting_attacklevel',
+            # 'recipient_attack_level',
+            'third_party_attacklevel',
+            'other_attacklevel',
+            # 'toxicity_level',
+            'attacklevel',
 
-        # 'count_unique_word',
-        # 'capitals',
-        # 'caps_vs_length',
-    ]
+            # 'count_unique_word',
+            # 'capitals',
+            # 'caps_vs_length',
+        ]
 
-    dataset = train.append(test)
-    for col in normilze_feature:
-        train[col] = (train[col] - dataset[col].mean()) / dataset[col].std()
-        test[col] = (test[col] - dataset[col].mean()) / dataset[col].std()
+        dataset = train.append(test)
+        for col in normilze_feature:
+            train[col] = (train[col] - dataset[col].mean()) / dataset[col].std()
+            test[col] = (test[col] - dataset[col].mean()) / dataset[col].std()
+        return train,test
+
+    train,test = normlizer(train,test)
 
     usecols.remove('comment_text')
-
+    if USE_CHAR_VEC:
+        usecols.remove('char_text')
     X={
         'comment':trainseq,
         'countFeature':train[usecols].values,
@@ -118,7 +122,19 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
         # 'tfidf2': tfidf_test[:,128:256],
         # 'tfidf3': tfidf_test[:,256:],
     }
+
     embedding_matrix = embedding.get_wordvec(word_index, frequency, wordvecfile)
+    if USE_CHAR_VEC:
+        char_text = train['char_text'].tolist()
+        char_text += test['char_text'].tolist()
+        char_seq = embedding.get_char_num_seq(char_text)
+        char_seq = pad_sequences(char_seq, maxlen=LEN_CHAR_SEQ, truncating='post')
+        train_ch = char_seq[:len(train)]
+        test_ch = char_seq[len(train):]
+        X['char'] = train_ch
+        testX['char'] = test_ch
+        char_weight = np.load(WEIGHT_FILE+"char_vec.npy")
+        return X,testX,labels,embedding_matrix,char_weight
 
     return X,testX,labels,embedding_matrix
 

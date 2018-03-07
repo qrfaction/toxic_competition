@@ -3,7 +3,7 @@ from keras import backend as K
 from keras.layers import Conv1D,Multiply,Permute,MaxPool1D
 from keras.models import Model
 from keras.optimizers import RMSprop,Nadam
-from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC,model_setting,WEIGHT_FILE,BALANCE_GRAD
+from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC,model_setting,WEIGHT_FILE,BALANCE_GRAD,USE_CHAR_VEC,LEN_CHAR_SEQ
 from keras import initializers
 import numpy as np
 from keras.engine.topology import Layer
@@ -65,26 +65,58 @@ def diceLoss(y_true, y_pred,smooth = 0):
     loss = - (2. * intersection + smooth) / (K.sum(y_true) + K.sum(y_pred) + smooth)
     return loss
 
+def pearsonLoss(y_true,y_pred):
+    std_y_ture = K.std(y_true,axis=1)
+    std_y_pred = K.std(y_pred, axis=1)
+    mean_y_true = K.mean(y_true,axis=1)
+    mean_y_pred = K.mean(y_pred, axis=1)
+    y_true = (y_true-mean_y_true)/std_y_ture
+    y_pred = (y_pred-mean_y_pred)/std_y_pred
+    loss = K.batch_dot(y_true,y_pred, axes=1)
+    loss = K.squeeze(loss,axis=0)
+    return -K.mean(loss)
+
+
+def char2vec(X,Y,embedding_matrix,batchsize = 102400,epochs=5):
+
+    def get_char2vec_model(embedding_matrix,num_chars=5):
+        char_layer = Input(shape=(num_chars,), name='char_layer')
+        embedding_layer = Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
+                            weights=[embedding_matrix], trainable=True)(char_layer)
+        gru =CuDNNGRU(300, return_sequences=False)
+        model = Model(inputs=[char_layer], outputs=gru)
+        model.compile(optimizer=Nadam(0.001),loss=pearsonLoss)
+        return model,embedding_layer
+
+    model,embed_layer = get_char2vec_model(embedding_matrix)
+    steps = len(X) // batchsize +1
+    for epoch in range(epochs):
+        for i in range(steps):
+            sample_x = X[batchsize*i:batchsize*(i+1)]
+            sample_y = Y[batchsize*i:batchsize*(i+1)]
+            model.fit(sample_x,sample_y,verbose=1)
+    np.save(WEIGHT_FILE+"char_vec.npy", embed_layer.get_weights())
+
+
 class model:
+
     def __init__(self,embedding_matrix ,trainable=False,use_feature = True,
-                 loss="binary_crossentropy",load_weight = False):
+                 loss="binary_crossentropy",load_weight = False,char_weight=None):
 
-        self.comment_layer = Input(shape=(200,), name='comment')
+        comment_layer = Input(shape=(200,), name='comment')
         self.embedding_layer = Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
-                                    weights=[embedding_matrix], trainable=trainable)(self.comment_layer)
+                                    weights=[embedding_matrix], trainable=trainable)(comment_layer)
 
-        self.use_feature = use_feature
-        if use_feature:
-            dim_features = 4
-            if USE_TOPIC:
-                dim_features += NUM_TOPIC
-            if USE_LETTERS:
-                dim_features += 27
-            self.features_layer = Input(shape=(dim_features,), name='countFeature')
+        self.cat_layers = []
+        self.inputs = [comment_layer]
+
+        self.select_feature(use_feature,char_weight)
 
         self.load_weight = load_weight
         self.opt = Nadam(lr=0.001)
+        self.select_loss(loss)
 
+    def select_loss(self,loss):
         self.lossname = loss
         if loss == 'focalLoss':
             self.loss = focalLoss
@@ -95,8 +127,29 @@ class model:
         else:
             raise NameError("loss name error in model")
 
-        if BALANCE_GRAD and loss!='diceloss':
+        if BALANCE_GRAD and loss != 'diceloss':
             self.loss = meanLoss
+
+    def select_feature(self,use_feature,char_weight):
+        if use_feature:
+            dim_features = 4
+            if USE_TOPIC:
+                dim_features += NUM_TOPIC
+            if USE_LETTERS:
+                dim_features += 27
+            features_layer = Input(shape=(dim_features,), name='countFeature')
+            self.inputs.append(features_layer)
+            self.cat_layers.append(features_layer)
+
+        if USE_CHAR_VEC:
+            char_input = Input(shape=(LEN_CHAR_SEQ,), name='char')
+            char_layer = Embedding(char_weight.shape[0],char_weight.shape[1],
+                            weights=[char_weight], trainable=False)(char_input)
+            gru3 = Bidirectional(CuDNNGRU(32,return_sequences=True), merge_mode='ave')(char_layer)
+            x3 = GlobalMaxPooling1D()(gru3)
+            x4 = GlobalAveragePooling1D()(gru3)
+            self.cat_layers +=[x3,x4]
+            self.inputs.append(char_input)
 
     def get_layer(self,modelname):
         if modelname == 'rnn':
@@ -109,11 +162,7 @@ class model:
     def set_loss(self,output_layer):
         if BALANCE_GRAD:
             output_layer = balanceGradLayer(self.lossname)(output_layer)
-            if self.use_feature:
-                self.train_model = \
-                    Model(inputs=[self.comment_layer, self.features_layer], outputs=output_layer)
-            else:
-                self.train_model = Model(inputs=[self.comment_layer], outputs=output_layer)
+            Model(inputs=self.inputs, outputs=output_layer)
         else:
             self.train_model = self.result_model
         self.train_model.compile(optimizer=self.opt,loss=self.loss)
@@ -135,19 +184,15 @@ class model:
             gru2.set_weights(gru2_weight)
 
         x = gru1(self.embedding_layer)
-        x = Dropout(0.5)(x)
         x = gru2(x)
-        x = Dropout(0.5)(x)
         x1 = GlobalMaxPooling1D()(x)
         x2 = GlobalAveragePooling1D()(x)
-        if self.use_feature:
-            y = Concatenate()([x1, x2, self.features_layer])
-            output_layer = Dense(6, activation="sigmoid")(y)
-            self.result_model = Model(inputs=[self.comment_layer, self.features_layer], outputs=output_layer)
-        else:
-            y = Concatenate()([x1, x2])
-            output_layer = Dense(6, activation="sigmoid")(y)
-            self.result_model = Model(inputs=[self.comment_layer], outputs=output_layer)
+
+        self.cat_layers += [x1,x2]
+
+        y = Concatenate()(self.cat_layers)
+        output_layer = Dense(6, activation="sigmoid")(y)
+        self.result_model = Model(inputs=self.inputs, outputs=output_layer)
 
         self.set_loss(output_layer)
 
@@ -182,15 +227,12 @@ class model:
         x = GLU(x,100,4)
         x1 = GlobalMaxPooling1D()(x)
         x2 = GlobalAveragePooling1D()(x)
-        if self.use_feature:
-            y = Concatenate()([x1, x2, self.features_layer])
-            output_layer = Dense(6, activation="sigmoid")(y)
-            self.result_model = Model(inputs=[self.comment_layer, self.features_layer], outputs=output_layer)
-        else:
-            y = Concatenate()([x1, x2])
-            output_layer = Dense(6, activation="sigmoid")(y)
-            self.result_model = Model(inputs=[self.comment_layer], outputs=output_layer)
 
+        self.cat_layers +=[x1,x2]
+
+        y = Concatenate()(self.cat_layers)
+        output_layer = Dense(6, activation="sigmoid")(y)
+        self.result_model = Model(inputs=self.inputs, outputs=output_layer)
         self.set_loss(output_layer)
         return layer
 
