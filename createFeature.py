@@ -1,66 +1,29 @@
 import re
 import input
-import string
-from nltk.corpus import stopwords
 import numpy as np
 import multiprocessing as mlp
 from tqdm import tqdm
 from gensim.matutils import corpus2csc
-from Ref_Data import replace_word,FILTER_FREQ,NUM_TOPIC
+from Ref_Data import replace_word,FILTER_FREQ,NUM_TOPIC,POSTAG_DIM,PATH
 import pandas as pd
-from sklearn.decomposition import PCA,KernelPCA
+from sklearn.decomposition import PCA,KernelPCA,SparsePCA
 from sklearn.feature_extraction.text import TfidfVectorizer
-from embedding import tokenize_word
-PATH = 'data/'
+from embedding import tokenize_word,batch_char_analyzer
+
 
 def countFeature(dataset):
-    eng_stopwords = set(stopwords.words("english"))
     def CountFeatures(df):
         # 句子长度
-        df['total_length'] = df['comment_text'].apply(len)
-
+        df['total_length'] = df['comment_text'].apply(lambda x:min(len(x),200*4))
         # 大写字母个数
-        df['capitals'] = df['comment_text'].apply(lambda comment: sum(1 for c in comment if c.isupper()))
-        df['caps_vs_length'] = df.apply(lambda row: float(row['capitals']) / float(row['total_length']),
+        df['capitals'] = df['comment_text'].apply(lambda x: sum(1 for c in x if c.isupper()))
+        df['caps_vs_length'] = df.apply(lambda x: float(x['capitals']) / float(x['total_length']),
                                         axis=1)
+        df['num_words'] = df['comment_text'].apply(lambda x: min(len(x.split()),200))
 
-        df['num_question_marks'] = df['comment_text'].apply(lambda comment: comment.count('?'))
-        df['num_punctuation'] = df['comment_text'].apply(
-            lambda comment: sum(comment.count(w) for w in '.,;:'))
-        df['num_symbols'] = df['comment_text'].apply(
-            lambda comment: sum(comment.count(w) for w in '*&$%'))
-        df['num_words'] = df['comment_text'].apply(lambda comment: len(comment.split()))
-        df['num_smilies'] = df['comment_text'].apply(
-            lambda comment: sum(comment.count(w) for w in (':-)', ':)', ';-)', ';)')))
-
-        df['count_word'] = df["comment_text"].apply(lambda x: len(str(x).split()))
-        df['count_unique_word'] = df["comment_text"].apply(lambda x: len(set(str(x).split())))
-        df["count_punctuations"] = df["comment_text"].apply(
-            lambda x: len([c for c in str(x) if c in string.punctuation]))
-        df["count_stopwords"] = df["comment_text"].apply(
-            lambda x: len([w for w in str(x).lower().split() if w in eng_stopwords]))
+        df['count_unique_word'] = df["comment_text"].apply(lambda x:
+                                                           min(len(set(str(x).split())) ,200))
         df["mean_word_len"] = df["comment_text"].apply(lambda x: np.mean([len(w) for w in str(x).split()]))
-
-        # derived features
-        # 2个：非重复词占比、标点占比
-        df['word_unique_percent'] = df['count_unique_word'] * 100 / df['count_word']
-        df['punct_percent'] = df['count_punctuations'] * 100 / df['count_word']
-
-        return df
-
-    def LeakyFeatures(df):
-        patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
-        patternIP = '\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}'
-
-        ## Leaky features——共8个特征
-        df['ip'] = df["comment_text"].apply(lambda x: re.findall(patternIP, str(x)))
-        df['count_ip'] = df["ip"].apply(lambda x: len(x))
-        df['link'] = df["comment_text"].apply(lambda x: re.findall(patternLink, str(x)))
-        df['count_links'] = df["link"].apply(lambda x: len(x))
-        df['article_id'] = df["comment_text"].apply(lambda x: re.findall("\d:\d\d\s{0,5}$", str(x)))
-        df['article_id_flag'] = df.article_id.apply(lambda x: len(x))
-        df['username'] = df["comment_text"].apply(lambda x: re.findall("\[\[User(.*)\|", str(x)))
-        df['count_usernames'] = df["username"].apply(lambda x: len(x))
 
         return df
 
@@ -87,9 +50,9 @@ def countFeature(dataset):
 
         return comment
 
+    dataset['count_sent'] = dataset["comment_text"].apply(lambda x: len(re.findall("\n", str(x))) + 1)
     dataset["comment_text"] = dataset["comment_text"].apply(deal_space)
     dataset = CountFeatures(dataset)
-    # dataset = LeakyFeatures(dataset)
     dataset = letter_distribution(dataset)
     return dataset
 
@@ -99,15 +62,13 @@ def tfidfFeature(clean_corpus, mode="other", params_tfidf=None, n_components=128
     ''' TF-IDF Vectorizer '''
 
     def getTfidfVector(clean_corpus,  # 之后的参数都是TfidfVectorizer()的参数
-                       min_df=100, max_features=100000,
+                       min_df=5, max_features=100000,
                        strip_accents='unicode', analyzer='word', ngram_range=(1, 1),
-                       use_idf=1, smooth_idf=1, sublinear_tf=1,
-                       stop_words='english'):
+                       use_idf=1, smooth_idf=True, sublinear_tf=True):
 
         tfv = TfidfVectorizer(min_df=min_df, max_features=max_features,
                               strip_accents=strip_accents, analyzer=analyzer, ngram_range=ngram_range,
-                              use_idf=use_idf, smooth_idf=smooth_idf, sublinear_tf=sublinear_tf,
-                              stop_words=stop_words)
+                              use_idf=use_idf, smooth_idf=smooth_idf, sublinear_tf=sublinear_tf)
         tfv.fit(clean_corpus)
         features_tfidf = np.array(tfv.get_feature_names())
         model_tfidf = tfv.transform(clean_corpus)
@@ -117,7 +78,7 @@ def tfidfFeature(clean_corpus, mode="other", params_tfidf=None, n_components=128
 
     def pca_compression(model_tfidf, n_components):
         np_model_tfidf = model_tfidf.toarray()
-        pca = PCA(n_components=n_components)
+        pca = KernelPCA(n_components=n_components,kernel='rbf',n_jobs=-1)
         pca_model_tfidf = pca.fit_transform(np_model_tfidf)
         return pca_model_tfidf
 
@@ -136,14 +97,14 @@ def tfidfFeature(clean_corpus, mode="other", params_tfidf=None, n_components=128
         ''' 内置3套参数 '''
         if mode == "unigrams":  # 单个词
             params = {
-                "min_df": 100, "max_features": 100000,
+                "min_df": 5, "max_features": 100000,
                 "strip_accents": 'unicode', "analyzer": 'word', "ngram_range": (1, 1),
                 "use_idf": 1, "smooth_idf": 1, "sublinear_tf": 1,
                 "stop_words": 'english'
             }
         elif mode == "bigrams":  # 两个词
             params = {
-                "min_df": 100, "max_features": 30000,
+                "min_df": 5, "max_features": 30000,
                 "strip_accents": 'unicode', "analyzer": 'word', "ngram_range": (2, 2),
                 "use_idf": 1, "smooth_idf": 1, "sublinear_tf": 1,
                 "stop_words": 'english'
@@ -182,7 +143,7 @@ def lda_infer(dataset,model):
     topic_probability_mat = model[dataset]
     return corpus2csc(topic_probability_mat).transpose().toarray().tolist()
 
-def LDAFeature(num_topics=6):
+def LDAFeature(num_topics=NUM_TOPIC):
     from gensim.corpora import Dictionary
     from gensim.models.ldamulticore import LdaMulticore
 
@@ -280,16 +241,17 @@ def LDAFeature(num_topics=6):
     train.to_csv(PATH+'clean_train.csv',index=False)
     test.to_csv(PATH + 'clean_test.csv', index=False)
 
-
 def get_tag(text,pos_tag):
     result = []
+    word2tag = {}
     for t in tqdm(text):
         text_tag = []
         for word,tag in pos_tag(t):
             text_tag.append(tag.lower())
+            word2tag[word] = tag.lower()
         text_tag = ' '.join(text_tag)
         result.append(text_tag)
-    return result
+    return result,word2tag
 
 def get_pos_tag_vec():
     from nltk import pos_tag
@@ -313,9 +275,12 @@ def get_pos_tag_vec():
         pool.join()
 
         text_tag = []
+        word2tag = {}
         for result in results:
-            text_tag.extend(result.get())
-        return text_tag
+            t_tag,word_2_vec = result.get()
+            text_tag.extend(t_tag)
+            word2tag.update(word_2_vec)
+        return text_tag,word2tag
 
     def getTfidfVector(clean_corpus,
                        min_df=0,max_features=int(1e10),
@@ -329,14 +294,14 @@ def get_pos_tag_vec():
         return tag_tfidf,list(tfv.get_feature_names())
 
 
-    text_tag = get_tag_text(text)
-    train['pos_tag_text'] = text_tag[:len(train)]
-    test['pos_tag_text'] = text_tag[len(train):]
-    train.to_csv(PATH+'clean_train.csv',index=False)
-    test.to_csv(PATH+'clean_test.csv',index=False)
+    text_tag,word2tag = get_tag_text(text)
+    import json
+
+    with open(PATH+'word2tag.json', 'w') as f:
+        f.write(json.dumps(word2tag , indent=4, separators=(',', ': ')))
 
     tag_tfidf ,columns= getTfidfVector(text_tag)
-    n_components = 22   # 输出pca.lambda_ 选择99%的成分即可
+    n_components = POSTAG_DIM   # 输出pca.lambda_ 选择99%的成分即可
     pca = KernelPCA(n_components=n_components,kernel='rbf',n_jobs=-1)
     pca_tfidf = pca.fit_transform(tag_tfidf.transpose()).transpose()
 
@@ -405,7 +370,40 @@ def createKmeansFeature(usecols,name,k=6):
     train.to_csv(PATH + 'clean_train.csv', index=False)
     test.to_csv(PATH + 'clean_test.csv', index=False)
 
+def get_char_text():
+    train = input.read_dataset('clean_train.csv')
+    test = input.read_dataset('clean_test.csv')
+    train['comment_text'] = train['comment_text'].fillna(replace_word['unknow'])
+    test['comment_text'] = test['comment_text'].fillna(replace_word['unknow'])
+    text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
+    text = tokenize_word(text)
+
+    def get_ch_seqs(text):
+        results = []
+        pool = mlp.Pool(mlp.cpu_count())
+
+        comments = list(text)
+        aver_t = int(len(text) / mlp.cpu_count()) + 1
+        for i in range(mlp.cpu_count()):
+            result = pool.apply_async(batch_char_analyzer,
+                            args=(comments[i * aver_t: (i + 1) * aver_t],True))
+            results.append(result)
+        pool.close()
+        pool.join()
+
+        ch_seqs = []
+        for result in results:
+            char_seq = result.get()
+            ch_seqs.extend(char_seq)
+
+        return ch_seqs
+
+    seqs = get_ch_seqs(text)
+    train['char_text'] = seqs[:len(train)]
+    test['char_text'] = seqs[len(train):]
+    train.to_csv(PATH + 'clean_train.csv', index=False)
+    test.to_csv(PATH + 'clean_test.csv', index=False)
 
 
 if __name__ == '__main__':
-    get_pos_tag_vec()
+    get_char_text()

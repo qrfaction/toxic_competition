@@ -1,196 +1,214 @@
-import torch.nn as nn
-import torch
-import torch.autograd as autograd
-import torch.nn.functional as F
-from tqdm import tqdm
-from Ref_Data import BATCHSIZE,model_setting
-from Nadam import Nadam
-
-class auc_loss(nn.Module):
-    def __init__(self,batchsize=BATCHSIZE//2):
-        super(auc_loss,self).__init__()
-        self.batchsize = batchsize
-
-    def forward(self,y_pred,y_true):
-        y_pred = torch.log(y_pred/(1-y_pred))
-        loss = 0
-        for i in range(6):
-            yi = y_pred[:,i]
-            yi_true = y_true[:,i]
-            y_pos = torch.masked_select(yi,yi_true.gt(0.5))  # gt greater than
-            y_pos = 1/y_pos
-            y_neg = torch.masked_select(yi,yi_true.lt(0.5))  # lt less than
-
-            if len(y_pos.size())==0 or len(y_neg.size())==0:
-                continue
-            mpos = y_pos.size()[0]
-            mneg = y_neg.size()[0]
-            y_pos = y_pos.unsqueeze(0)
-            y_neg = y_neg.unsqueeze(1)
-            loss += torch.sum(torch.mm(y_neg,y_pos))/(mpos*mneg)
-
-        return loss
-
-class focallogloss(nn.Module):
-    def __init__(self,alpha):
-        super(focallogloss, self).__init__()
-        self.alpha = alpha
-    def forward(self,y_pred,y_true):
-        weight1 = torch.pow(1-y_pred,self.alpha)
-        weight2 = torch.pow(y_pred,self.alpha)
-        loss = -(
-                    y_true * torch.log(y_pred) * weight1 +
-                    (1-y_true) * torch.log(1-y_pred) * weight2
-                )
-        loss = torch.sum(loss)/(y_true.size()[0]*6)
-        return  loss
-
-class baseNet(nn.Module):
-    def __init__(self,dim, embedding_matrix,trainable):
-        super(baseNet,self).__init__()
-
-        self.embedding = nn.Embedding(
-            num_embeddings=len(embedding_matrix),
-            embedding_dim=dim,
-            padding_idx=0,
-        )
-        self.embedding.weight = nn.Parameter(torch.FloatTensor(embedding_matrix),requires_grad=trainable)
-        self.dropout = nn.Dropout(p=0.3)
-        self.GRU1 = nn.GRU(
-            input_size=dim,
-            hidden_size=model_setting['hidden_size1'],
-            num_layers=1,
-            batch_first=True,
-            bidirectional=True,
-            dropout=0.5,
-        )
-
-        self.GRU2 = nn.GRU(
-            input_size=model_setting['hidden_size1'],
-            hidden_size=model_setting['hidden_size2'],
-            num_layers=1,
-            batch_first=True,
-            bidirectional=True,
-            dropout=0.5,
-        )
-
-        # self.atte_fc1 = nn.Conv1d(200,100,kernel_size=1)
-        # self.atte_fc2 = nn.Conv1d(200,1,kernel_size=1)
-
-        self.maxPool = nn.MaxPool1d(200)
-        self.avePool = nn.AvgPool1d(200)
-
-        from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
-        dim_features = 4
-        if USE_TOPIC:
-            dim_features += NUM_TOPIC
-        if USE_LETTERS:
-            dim_features +=27
-        # self.fc2 = nn.Linear(dim_features  ,model_setting['fc_feature'])
-
-        dim_fc = model_setting['hidden_size2']*2 + dim_features
-        self.fc = nn.Linear(dim_fc ,6)
+from keras.layers import CuDNNGRU,Input,Embedding,Bidirectional,Dropout,Dense,GlobalMaxPooling1D,GlobalAveragePooling1D,Concatenate
+from keras import backend as K
+from keras.layers import Conv1D,Multiply,Permute,MaxPool1D
+from keras.models import Model
+from keras.optimizers import RMSprop,Nadam
+from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC,model_setting,WEIGHT_FILE,BALANCE_GRAD
+from keras import initializers
+import numpy as np
+from keras.engine.topology import Layer
+K.clear_session()
 
 
-    def forward(self,sentences,features,volatile):
 
-        x = self.embedding(sentences)
-        # hidden = autograd.Variable(torch.zeros(2,x.size()[0],model_setting['hidden_size1']),volatile=volatile).cuda()
-        hidden = autograd.Variable(torch.zeros(2, x.size()[0], model_setting['hidden_size1']), volatile=volatile)
-        x,_ = self.GRU1(x,hidden)
-        x = x[:,:,:model_setting['hidden_size1']] + x[:,:,model_setting['hidden_size1']:]
-        # hidden = autograd.Variable(torch.zeros(2, x.size()[0],model_setting['hidden_size2']),volatile=volatile).cuda()
-        hidden = autograd.Variable(torch.zeros(2, x.size()[0], model_setting['hidden_size2']), volatile=volatile)
-        x,hn = self.GRU2(x,hidden)
-        x = x[:, :, :model_setting['hidden_size2']] + x[:, :,model_setting['hidden_size2']:]          # n*200*size
+class balanceGradLayer(Layer):
 
+    def __init__(self,loss,**kwargs):
+        self.output_dim = 12
+        self.loss = loss
+        super(balanceGradLayer, self).__init__(**kwargs)
 
-        y2 = self.maxPool(x.transpose(1,2)).squeeze()
-        y3 = self.avePool(x.transpose(1,2)).squeeze()
+    def build(self, input_shape):
+        self.kernel = self.add_weight(name='kernel',
+                                      shape=(6,),
+                                      initializer=initializers.Ones(),
+                                      trainable=True)
+        super(balanceGradLayer, self).build(input_shape)
 
-        # features = self.fc2(features)
-        # features = nn.functional.tanh(features)
-        y = torch.cat((y2,y3,features),1)
+    def call(self, y_pred):
+        label_weight = K.softmax(self.kernel)
+        if self.loss == 'focalLoss':
+            weight1 = K.pow(1 - y_pred, 3)*label_weight
+            weight2 = K.pow(y_pred, 3)*label_weight
+            pos_y = K.log(y_pred)*weight1
+            neg_y = K.log(1-y_pred)*weight2
+        elif self.loss == "binary_crossentropy":  # celoss
+            pos_y = K.log(y_pred) * label_weight
+            neg_y = K.log(1 - y_pred) * label_weight
+        else:
+            raise NameError('loss name error')
+        return K.concatenate([pos_y,neg_y], axis=-1)
 
-        # y = x.sum(dim=1)
-        output = nn.functional.sigmoid(self.fc(y))
-        return output
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], self.output_dim)
 
-class DnnModle:
+def meanLoss(y_true,y_pred):
+    y_true = y_true[:,:6]
+    pos_y = y_pred[:,:6]
+    neg_y = y_pred[:, 6:]
+    loss = -(y_true * pos_y + (1 - y_true) *neg_y)
+    loss = K.mean(loss,axis=-1)/6
+    return loss
 
-    def __init__(self,dim, embedding_matrix,alpha=3,trainable=True,loss = 'focalLoss'):
-        super(DnnModle,self).__init__()
+def focalLoss(y_true,y_pred,alpha=3):
+    weight1 = K.pow(1 - y_pred, alpha)
+    weight2 = K.pow(y_pred, alpha)
+    loss = -(
+            y_true * K.log(y_pred) * weight1 +
+            (1 - y_true) * K.log(1 - y_pred) * weight2
+    )
+    loss = K.mean(loss,axis=-1) / 6
+    return loss
 
-        # self.basenet = nn.DataParallel(baseNet(dim, embedding_matrix,trainable)).cuda()
+def diceLoss(y_true, y_pred,smooth = 0):
+    intersection = K.sum(y_true * y_pred)
+    loss = - (2. * intersection + smooth) / (K.sum(y_true) + K.sum(y_pred) + smooth)
+    return loss
 
-        # self.basenet = baseNet(dim, embedding_matrix,trainable).cuda()
-        self.basenet = baseNet(dim, embedding_matrix, trainable)
+class model:
+    def __init__(self,embedding_matrix ,trainable=False,use_feature = True,
+                 loss="binary_crossentropy",load_weight = False):
 
-        self.optimizer = Nadam(
-            [
-            #     # {'params': self.basenet.module.GRU1.parameters()},
-            #     # {'params': self.basenet.module.GRU2.parameters()},
-            #     # {'params': self.basenet.module.fc.parameters()},
-            #     # {'params': self.basenet.module.fc2.parameters()},
-                {'params': self.basenet.GRU1.parameters()},
-                {'params': self.basenet.GRU2.parameters()},
-                {'params': self.basenet.fc.parameters()},
-                # {'params': self.basenet.fc2.parameters()},
-            #     # {'params':self.basenet.module.embedding.parameters() ,'lr':1e-5},
-            ],
-            lr=0.001,
-        )
-        self.basenet.train()
+        self.comment_layer = Input(shape=(200,), name='comment')
+        self.embedding_layer = Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
+                                    weights=[embedding_matrix], trainable=trainable)(self.comment_layer)
 
+        self.use_feature = use_feature
+        if use_feature:
+            dim_features = 4
+            if USE_TOPIC:
+                dim_features += NUM_TOPIC
+            if USE_LETTERS:
+                dim_features += 27
+            self.features_layer = Input(shape=(dim_features,), name='countFeature')
+
+        self.load_weight = load_weight
+        self.opt = Nadam(lr=0.001)
+
+        self.lossname = loss
         if loss == 'focalLoss':
-            self.loss_f = focallogloss(alpha=alpha)
-        elif loss =='aucLoss':
-            self.loss_f = auc_loss()
-        elif loss =='ceLoss':
-            self.loss_f = nn.BCELoss()
+            self.loss = focalLoss
+        elif loss == 'diceLoss':
+            self.loss = diceLoss
+        elif loss == 'binary_crossentropy':
+            self.loss = 'binary_crossentropy'
+        else:
+            raise NameError("loss name error in model")
 
-    def fit(self,X,features,Y):
-        # comment = torch.autograd.Variable(X.cuda())
-        # Y = torch.autograd.Variable(Y.cuda())
-        # features = torch.autograd.Variable(features.cuda())
-        # y_pred = self.basenet(comment,features,volatile=False)
-        # loss = self.loss_f(y_pred,Y)
-        # print(loss)
-        # self.optimizer.zero_grad()
-        # loss.backward()
-        # self.optimizer.step()
+        if BALANCE_GRAD and loss!='diceloss':
+            self.loss = meanLoss
 
-        comment = torch.autograd.Variable(X)
-        Y = torch.autograd.Variable(Y)
-        features = torch.autograd.Variable(features)
-        y_pred = self.basenet(comment, features, volatile=False)
-        loss = self.loss_f(y_pred, Y)
-        print(loss)
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+    def get_layer(self,modelname):
+        if modelname == 'rnn':
+            return self.RNNmodel()
+        elif modelname == 'cnn':
+            return self.CNNmodel()
+        elif modelname == 'cnnGLU':
+            return self.CNNGLU()
+
+    def set_loss(self,output_layer):
+        if BALANCE_GRAD:
+            output_layer = balanceGradLayer(self.lossname)(output_layer)
+            if self.use_feature:
+                self.train_model = \
+                    Model(inputs=[self.comment_layer, self.features_layer], outputs=output_layer)
+            else:
+                self.train_model = Model(inputs=[self.comment_layer], outputs=output_layer)
+        else:
+            self.train_model = self.result_model
+        self.train_model.compile(optimizer=self.opt,loss=self.loss)
+
+    def RNNmodel(self):
+
+        gru1 = Bidirectional(CuDNNGRU(model_setting['hidden_size1'], return_sequences=True), merge_mode='ave')
+        gru2 = Bidirectional(CuDNNGRU(model_setting['hidden_size2'], return_sequences=True), merge_mode='ave')
+
+        layer = {
+            'gru1':gru1,
+            'gru2': gru2,
+        }
+
+        if self.load_weight:
+            gru1_weight = np.load(WEIGHT_FILE+self.lossname+'gru1_weight.npy')
+            gru1.set_weights(gru1_weight)
+            gru2_weight = np.load(WEIGHT_FILE+self.lossname+'gru2_weight.npy')
+            gru2.set_weights(gru2_weight)
+
+        x = gru1(self.embedding_layer)
+        x = Dropout(0.5)(x)
+        x = gru2(x)
+        x = Dropout(0.5)(x)
+        x1 = GlobalMaxPooling1D()(x)
+        x2 = GlobalAveragePooling1D()(x)
+        if self.use_feature:
+            y = Concatenate()([x1, x2, self.features_layer])
+            output_layer = Dense(6, activation="sigmoid")(y)
+            self.result_model = Model(inputs=[self.comment_layer, self.features_layer], outputs=output_layer)
+        else:
+            y = Concatenate()([x1, x2])
+            output_layer = Dense(6, activation="sigmoid")(y)
+            self.result_model = Model(inputs=[self.comment_layer], outputs=output_layer)
+
+        self.set_loss(output_layer)
+
+        return layer
+
+    def CNNmodel(self):
+        pass
+
+    def CNNGLU(self):
+        layer = {}
+        def GLU(x,dim,num):
+            conv1 = Conv1D(filters=dim, kernel_size=1, padding='same')
+            conv2 = Conv1D(filters=dim, kernel_size=1, padding='same', activation='sigmoid')
+            layer['glu_conv1_'+str(num)] = conv1
+            layer['glu_conv2_'+str(num)] = conv2
+            if self.load_weight:
+                conv1_name = WEIGHT_FILE + self.lossname + 'glu_conv1_'+str(num)+'_weight.npy'
+                conv2_name = WEIGHT_FILE + self.lossname + 'glu_conv2_'+str(num)+'_weight.npy'
+                conv1_weight = np.load(conv1_name)
+                conv1.set_weights(conv1_weight)
+                conv2_weight = np.load(conv2_name)
+                conv2.set_weights(conv2_weight)
+            x1 = conv1(x)
+            x2 = conv2(x)
+            return Multiply()([x1,x2])
+
+        x = Permute((2, 1))(self.embedding_layer)
+        x = GLU(x,400,1)
+        x = MaxPool1D(strides=2,padding='same')(x)
+        x = GLU(x,300,2)
+        x = GLU(x,200,3)
+        x = GLU(x,100,4)
+        x1 = GlobalMaxPooling1D()(x)
+        x2 = GlobalAveragePooling1D()(x)
+        if self.use_feature:
+            y = Concatenate()([x1, x2, self.features_layer])
+            output_layer = Dense(6, activation="sigmoid")(y)
+            self.result_model = Model(inputs=[self.comment_layer, self.features_layer], outputs=output_layer)
+        else:
+            y = Concatenate()([x1, x2])
+            output_layer = Dense(6, activation="sigmoid")(y)
+            self.result_model = Model(inputs=[self.comment_layer], outputs=output_layer)
+
+        self.set_loss(output_layer)
+        return layer
 
 
-    def predict(self,X,batchsize=1024):
-        # self.basenet.eval()
-        # comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()).cuda(), volatile=True)
-        # features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()).cuda(),volatile=True)
-        # y_pred = torch.zeros((len(comment),6)).cuda()
-        # for i in range(0,len(comment),batchsize):
-        #     y_pred[i:i+batchsize] = self.basenet(comment[i:i+batchsize],features[i:i+batchsize],volatile=True).data
-        # self.basenet.train()
-        # return y_pred.cpu().numpy()
+    def fit(self,X,Y,batch_size,epochs,verbose):
+        if BALANCE_GRAD:
+            self.train_model.fit(X,np.concatenate([Y,Y],axis=1),batch_size,epochs,verbose)
+        else:
+            self.train_model.fit(X,Y, batch_size, epochs, verbose)
 
-        self.basenet.eval()
-        comment = torch.autograd.Variable(torch.LongTensor(X['comment'].tolist()), volatile=True)
-        features = torch.autograd.Variable(torch.FloatTensor(X['countFeature'].tolist()), volatile=True)
-        y_pred = torch.zeros((len(comment), 6))
-        for i in range(0, len(comment), batchsize):
-            y_pred[i:i + batchsize] = self.basenet(comment[i:i + batchsize], features[i:i + batchsize], volatile=True).data
-        self.basenet.train()
-        return y_pred.numpy()
+    def predict(self,X,batch_size=2048, verbose=1):
+        return self.result_model.predict(X,batch_size,verbose)
 
+    def save_weights(self,path):
+        self.train_model.save_weights(path)
 
+    def load_weights(self,path,by_name=False):
+        self.train_model.load_weights(path,by_name=by_name)
 
 
 

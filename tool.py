@@ -1,13 +1,11 @@
-import tensorflow     #core dump 需要
-import fastText       #core dump 需要
 import numpy as np
 import random
-from torch.utils.data import Dataset
-import torch
 from tqdm import tqdm
 from textblob import TextBlob
 from textblob.translate import NotTranslated
 import json
+import re
+import input
 
 def translate(comments):
     translation = {}
@@ -40,26 +38,47 @@ def deal_other_language():
     with open('translation.json', 'w') as f:
         f.write(json.dumps(translation, indent=4, separators=(',', ': '),ensure_ascii=False))
 
+def get_other_lang_train(comments,lang='nl'):
+    translation = []
+    for comment in tqdm(comments):
+        comment = re.sub("-", ' ', comment)
+        text = TextBlob(comment)
+        try:
+            text = text.translate(to=lang)
+        except NotTranslated:
+            pass
+        translation.append(str(text))
+    return translation
+
+def get_other_language_train(lang='nl'):
+    import multiprocessing as mlp
+    from Ref_Data import replace_word,PATH
+
+    dataset = input.read_dataset('train.csv')
+    dataset.fillna(replace_word['unknow'], inplace=True)
+    comments = dataset['comment_text'].tolist()
+
+    results = []
+    pool = mlp.Pool(mlp.cpu_count())
+    aver_t = int(len(comments) / mlp.cpu_count()) + 1
+    for i in range(mlp.cpu_count()):
+        result = pool.apply_async(get_other_lang_train,
+                                  args=(comments[i * aver_t:(i + 1) * aver_t],lang))
+        results.append(result)
+    pool.close()
+    pool.join()
+
+    translation = []
+    for result in results:
+        translation.extend(result.get())
+    dataset['comment_text'] = translation
+    dataset.to_csv(PATH+lang+'_train.csv',index=False)
+
 def splitdata(index_train,dataset):
     train_x={}
     for key in dataset.keys():
         train_x[key] = dataset[key][index_train]
     return train_x
-
-
-class CommentData(Dataset):
-    def __init__(self, trainset , labels):
-        self.trainset = torch.LongTensor(trainset['comment'].tolist())
-        self.labels = torch.FloatTensor(labels.tolist())
-
-        self.features = torch.FloatTensor(trainset['countFeature'].tolist())
-
-    def __getitem__(self, index):#返回的是tensor
-        return self.trainset[index],self.features[index], self.labels[index]
-
-    def __len__(self):
-        return len(self.labels)
-
 
 class Generate:
 
@@ -129,7 +148,6 @@ class Generate:
             self.end = self.batchsize
         return train_x,train_y
 
-
 def cal_mean(results,scores=None):
 
     if scores is None:
@@ -151,7 +169,6 @@ def cal_mean(results,scores=None):
 
 def get_language():
     "检测语言是否为中文"
-    import input
     from Ref_Data import replace_word
     import json
     from langdetect import detect_langs
@@ -205,11 +222,8 @@ def add_comment(index,file):
 
 
 if __name__=="__main__":
-    # get_language()
-
-    index = [31903,32494,109104]
-    add_comment(index,'te')
-    deal_other_language()
+    get_other_language_train('nl')   #荷兰语
+    get_other_language_train('fr')   #法语
 
 
 

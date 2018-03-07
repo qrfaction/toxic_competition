@@ -57,10 +57,10 @@ def bagging():
         # 'kernel.csv.gz':26,
         # 'kernel2.csv.gz':10,
         # 'focalloss19.csv.gz':10,
-        'base1.gz':1,
-        'base2.gz':1,
+        'results/celoss.csv.gz':2,
+        'results/mybest62.csv.gz':10,
     }
-    output = pd.read_csv('data/sample_submission.csv')
+    output = pd.read_csv('results/baseline.csv.gz')
     output[list_classes] = 0
     norm = 0
     for file,weight in file_weight.items():
@@ -73,8 +73,8 @@ def bagging():
 
     output.to_csv('output.csv.gz',index=False,compression='gzip')
 
-post_deal()
+# post_deal()
 # cal_mean()
 # post_deal()
-# bagging()
+bagging()
 # get_corr()

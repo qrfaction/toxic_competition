@@ -34,7 +34,7 @@ def Tfidfize(df):
 
     comment = 'comment' if 'comment' in df else 'comment_text'
 
-    tfidfer = TfidfVectorizer(ngram_range=(1, 2), max_features=max_vocab,
+    tfidfer = TfidfVectorizer(min_df=5,ngram_range=(1, 2), max_features=max_vocab,
                               use_idf=1, stop_words='english',
                               smooth_idf=1, sublinear_tf=1)
     tfidf = tfidfer.fit_transform(df[comment])
@@ -88,7 +88,7 @@ def get_label_feature():
     }
     pool = mlp.Pool(mlp.cpu_count())
     for feat,file in features.items():
-        result = pool.apply_async(get_label_feature, args=(file,feat))
+        result = pool.apply_async(get_label_feat, args=(file,feat))
         results.append(result)
     pool.close()
     pool.join()

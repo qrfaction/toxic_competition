@@ -73,6 +73,11 @@ def cleanComment(comments):
         comment = re.sub('( \d\d:\d\d)',replace_word['num'],comment)
         comment = re.sub('@', 'a', comment)
         comment = re.sub('\$', 's', comment)
+
+
+        for i in range(97,97+26):
+            ch = chr(i)
+            comment = re.sub(ch +'{3,}',ch , comment)
         return comment
 
     patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'

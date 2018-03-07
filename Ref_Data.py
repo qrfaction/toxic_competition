@@ -10,6 +10,11 @@ replace_word = {
 USE_TOPIC = True
 USE_LETTERS = True
 
+USE_POSTAG = False
+
+BALANCE_GRAD = False
+POSTAG_DIM = 22
+
 WEIGHT_FILE = 'weight/'
 PATH = 'data/'
 
@@ -19,10 +24,15 @@ BATCHSIZE = 256
 
 FILTER_FREQ = 3
 
+
+
 model_setting = {
     'hidden_size1' :160,
     'hidden_size2' :80,
 }
+
+
+
 
 blocked_ips = ["216.102.6.176",
                "216.120.176.2",

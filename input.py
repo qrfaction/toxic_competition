@@ -2,7 +2,7 @@ import embedding
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
-from Ref_Data import replace_word,PATH
+from Ref_Data import replace_word,PATH,USE_POSTAG
 
 wordvec={
     'glove42':PATH+'glove.42B.300d.txt',
@@ -35,22 +35,13 @@ usecols = [
     # 'punct_percent',
 
     # 'toxicity_score_level',
-    'quoting_attack_level',
+    'quoting_attacklevel',
     # 'recipient_attack_level',
-    'third_party_attack_level',
-    'other_attack_level',
+    'third_party_attacklevel',
+    'other_attacklevel',
     # 'toxicity_level',
-    'attack_level',
+    'attacklevel',
 
-    ## leaky feature
-    # 'ip',
-    # 'count_ip',
-    # 'link',
-    # 'count_links',
-    # 'article_id',
-    # 'article_id_flag',
-    # 'username',
-    # 'count_usernames',
 ]
 from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
 if USE_TOPIC:
@@ -58,6 +49,7 @@ if USE_TOPIC:
 if USE_LETTERS:
     usecols += ['distri_'+chr(i) for i in range(97,26+97)]
     usecols.append('distri_!')
+
 
 def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',300),)):
     """
@@ -78,11 +70,11 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
     from keras.preprocessing.sequence import pad_sequences
     print('tokenize word')
     print(wordvecfile[0])
-    if wordvecfile[0][0] == 'fasttext':
-        filter_word = False
-    else:
-        filter_word = True
-    sentences, word_index, frequency = embedding.tokenize_sentences(text,filter_word=filter_word)
+
+
+    sentences, word_index, frequency = embedding.tokenize_sentences(text)
+
+
     sentences = pad_sequences(sentences, maxlen=maxlen, truncating='post')
     sequences = np.array(sentences)
 
@@ -93,12 +85,12 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
 
     normilze_feature = [
         # 'toxicity_score_level',
-        'quoting_attack_level',
+        'quoting_attacklevel',
         # 'recipient_attack_level',
-        'third_party_attack_level',
-        'other_attack_level',
+        'third_party_attacklevel',
+        'other_attacklevel',
         # 'toxicity_level',
-        'attack_level',
+        'attacklevel',
 
         # 'count_unique_word',
         # 'capitals',
@@ -111,6 +103,7 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
         test[col] = (test[col] - dataset[col].mean()) / dataset[col].std()
 
     usecols.remove('comment_text')
+
     X={
         'comment':trainseq,
         'countFeature':train[usecols].values,
@@ -126,13 +119,63 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
         # 'tfidf3': tfidf_test[:,256:],
     }
     embedding_matrix = embedding.get_wordvec(word_index, frequency, wordvecfile)
+
     return X,testX,labels,embedding_matrix
+
+def get_transfer_data(maxlen,language):
+
+    train = read_dataset(language+'_train.csv')
+    labels = read_dataset('labels.csv').values
+
+    train['comment_text'].fillna(replace_word['unknow'], inplace=True)
+    text = train['comment_text'].values.tolist()
+
+    from keras.preprocessing.sequence import pad_sequences
+    print('tokenize word')
+
+
+    sentences, word_index, frequency = embedding.tokenize_sentences(text)
+
+    sentences = pad_sequences(sentences, maxlen=maxlen, truncating='post')
+    sequences = np.array(sentences)
+
+    trainseq = sequences
+    assert len(trainseq) == len(train)
+
+    usecols.remove('comment_text')
+
+    X = {
+        'comment': trainseq,
+    }
+
+
+    def get_embedding_matrix(word_index,language):
+        from fastText import load_model
+        print('get embedding matrix')
+
+        num_words = len(word_index) + 1
+        # 停止符用0
+        embedding_matrix = np.zeros((num_words, 300))
+        print(embedding_matrix.shape)
+
+        fastText = "cc.nl.300.bin" if language=='nl' else "cc.fr.300.bin"
+
+        ft_model = load_model(PATH + fastText)
+        for word, i in tqdm(word_index.items()):
+            embedding_matrix[i] = ft_model.get_word_vector(word).astype('float32')
+
+        return embedding_matrix
+
+    embedding_matrix = get_embedding_matrix(word_index,language)
+
+    return X, labels, embedding_matrix
 
 def work(wordmat):
     result={}
     for line in tqdm(wordmat):
-        wvec = line.strip(' ').split(' ')
+        wvec = line.strip('\n').strip(' ').split(' ')
         result[wvec[0]] = np.asarray(wvec[1:], dtype='float32')
+
     return result
 
 def read_wordvec(filename):
@@ -140,7 +183,13 @@ def read_wordvec(filename):
     import multiprocessing as mlp
 
     with open(wordvec[filename]) as f:
-        wordmat=f.read().strip('\n').split('\n')
+        wordmat=[line for line in f.readlines()]
+        # wordmat=f.read().split('\n')
+        if wordmat[-1]=='':
+            wordmat = wordmat[:-1]
+        if wordmat[0] == '':
+            wordmat = wordmat[1:]
+
     results = []
     pool = mlp.Pool(mlp.cpu_count())
 
@@ -172,6 +221,7 @@ def bin_to_text(filename,name):
     from gensim.models.keyedvectors import KeyedVectors
     model = KeyedVectors.load_word2vec_format(PATH+filename, binary=True)
     model.save_word2vec_format(PATH+name,binary=False)
+
 
 if __name__ == "__main__":
     # a=read_dataset('labels.csv')
