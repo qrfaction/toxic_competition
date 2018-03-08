@@ -137,9 +137,9 @@ def cleanComment(comments):
         words = [APPO[word] if word in APPO else word for word in words]
 
         comment = " ".join(words)
-        for i in range(97,97+26):
-            ch = chr(i)
-            comment = re.sub(ch +'{3,}',ch , comment)
+        # for i in range(97,97+26):
+        #     ch = chr(i)
+        #     comment = re.sub(ch +'{3,}',ch , comment)
 
         # 纠正拼写错误/
         # for word,pos in tknzr(comment):
@@ -190,6 +190,7 @@ def translation_sub(dataset,file):
             index = int(key[2:])
             dataset.loc[index,'comment_text'] = value[0]
     return dataset
+
 
 def pipeline(
     file = ( 'train.csv','test.csv',

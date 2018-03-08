@@ -8,7 +8,7 @@ replace_word = {
 }
 
 USE_TOPIC = True
-USE_LETTERS = True
+USE_LETTERS = False
 
 USE_POSTAG = False
 

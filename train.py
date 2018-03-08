@@ -48,7 +48,7 @@ def cv(model_para, X, Y, test,K=10,outputfile='baseline.csv.gz'):
     sample_submission[list_classes] = test_predicts
     sample_submission.to_csv(outputfile, index=False, compression='gzip')
 
-def _train_model(model,model_name ,train_x, train_y, val_x, val_y,test ,batchsize = BATCHSIZE,frequecy = 100):
+def _train_model(model,model_name ,train_x, train_y, val_x, val_y,test ,batchsize = BATCHSIZE,frequecy = 50):
     from sklearn.metrics import roc_auc_score
 
     generator = tool.Generate(train_x,train_y,batchsize=frequecy*batchsize)
@@ -79,7 +79,7 @@ def _train_model(model,model_name ,train_x, train_y, val_x, val_y,test ,batchsiz
                 print(best_score,best_epoch,'\n')
                 weights = Scores
                 model.save_weights(WEIGHT_FILE + model_name)
-            elif epoch - best_epoch > 4 :  # patience 为5
+            elif epoch - best_epoch > 5 :  # patience 为5
                 model.load_weights(WEIGHT_FILE + model_name, by_name=False)
                 test_pred = model.predict(test,batch_size=2048)
                 return test_pred,weights

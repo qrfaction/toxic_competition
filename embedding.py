@@ -135,17 +135,28 @@ def batch_char_analyzer(sentences,to_string=True):
         ch_seqs.append(seq)
     return ch_seqs
 
-# def generator_char_vec(wordvecfile='crawl'):
+def generator_char_vec(wordvecfile='crawl'):
+    embeddings_index = input.read_wordvec(wordvecfile)
 
+    words = embeddings_index.keys()
+    chars = []
+    for w in words:
+        chars.append(char_analyzer(w))
+    del embeddings_index
 
+    train = input.read_dataset('clean_train.csv')
+    test = input.read_dataset('clean_test.csv')
+    text = train['char_text'].tolist()
+    text += test['char_text'].tolist()
 
+    import itertools, json
+    corpus_chars = list(itertools.chain.from_iterable(text))  # 2维list展开成1维
+    corpus_chars +=chars
+    idx_to_char = list(set(corpus_chars))
+    char_to_idx = dict([(char, i) for i, char in enumerate(idx_to_char)])
+    with open(PATH + 'char2index.json', 'w') as f:
+        f.write(json.dumps(char_to_idx, indent=4, separators=(',', ': ')))
 
-    # embeddings_index = input.read_wordvec(wordvecfile)
-    #
-    # words = embeddings_index.keys()
-    # chars = []
-    # for w in words:
-    #     chars.append(char_analyzer(w))
 
 def get_char_num_seq(char_texts):
     with open(PATH+'char2index.json','r') as f:

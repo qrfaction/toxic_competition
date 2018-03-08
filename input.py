@@ -34,6 +34,13 @@ usecols = [
     # 'word_unique_percent',
     # 'punct_percent',
 
+    'total_length',
+    'count_unique_word',
+    'capitals',
+    "mean_word_len",
+    'caps_vs_length',
+
+
     # 'toxicity_score_level',
     'quoting_attacklevel',
     # 'recipient_attack_level',
@@ -92,15 +99,19 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
             # 'toxicity_level',
             'attacklevel',
 
-            # 'count_unique_word',
-            # 'capitals',
-            # 'caps_vs_length',
+            'total_length',
+            'count_unique_word',
+            'capitals',
+            "mean_word_len",
+            'caps_vs_length',
         ]
 
         dataset = train.append(test)
         for col in normilze_feature:
             train[col] = (train[col] - dataset[col].mean()) / dataset[col].std()
             test[col] = (test[col] - dataset[col].mean()) / dataset[col].std()
+            print(train[col].isnull().sum())
+
         return train,test
 
     train,test = normlizer(train,test)
@@ -138,7 +149,7 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
 
     return X,testX,labels,embedding_matrix
 
-def get_transfer_data(maxlen,language):
+def get_transfer_data(maxlen,language,fastText):
 
     train = read_dataset(language+'_train.csv')
     labels = read_dataset('labels.csv').values
@@ -165,7 +176,7 @@ def get_transfer_data(maxlen,language):
     }
 
 
-    def get_embedding_matrix(word_index,language):
+    def get_embedding_matrix(word_index,fastText):
         from fastText import load_model
         print('get embedding matrix')
 
@@ -174,7 +185,6 @@ def get_transfer_data(maxlen,language):
         embedding_matrix = np.zeros((num_words, 300))
         print(embedding_matrix.shape)
 
-        fastText = "cc.nl.300.bin" if language=='nl' else "cc.fr.300.bin"
 
         ft_model = load_model(PATH + fastText)
         for word, i in tqdm(word_index.items()):
@@ -182,7 +192,7 @@ def get_transfer_data(maxlen,language):
 
         return embedding_matrix
 
-    embedding_matrix = get_embedding_matrix(word_index,language)
+    embedding_matrix = get_embedding_matrix(word_index,fastText)
 
     return X, labels, embedding_matrix
 

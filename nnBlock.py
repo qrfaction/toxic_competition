@@ -1,12 +1,14 @@
 from keras.layers import CuDNNGRU,Input,Embedding,Bidirectional,Dropout,Dense,GlobalMaxPooling1D,GlobalAveragePooling1D,Concatenate
-from keras import backend as K
-from keras.layers import Conv1D,Multiply,Permute,MaxPool1D
+from keras.layers import Conv1D,Multiply,Permute,MaxPool1D,SpatialDropout1D,RepeatVector,multiply,Flatten,Activation
 from keras.models import Model
 from keras.optimizers import RMSprop,Nadam
 from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC,model_setting,WEIGHT_FILE,BALANCE_GRAD,USE_CHAR_VEC,LEN_CHAR_SEQ
-from keras import initializers
+from keras import regularizers
 import numpy as np
 from keras.engine.topology import Layer
+from keras import backend as K
+from keras import initializers
+
 K.clear_session()
 
 
@@ -26,15 +28,17 @@ class balanceGradLayer(Layer):
         super(balanceGradLayer, self).build(input_shape)
 
     def call(self, y_pred):
-        label_weight = K.softmax(self.kernel)
+        # label_weight = K.softmax(self.kernel)
+        label_weight = K.sigmoid(self.kernel)
+
         if self.loss == 'focalLoss':
-            weight1 = K.pow(1 - y_pred, 3)*label_weight
-            weight2 = K.pow(y_pred, 3)*label_weight
+            weight1 = K.pow(1 - y_pred,3)*label_weight
+            weight2 = K.pow(y_pred, 3)*(1-label_weight)
             pos_y = K.log(y_pred)*weight1
             neg_y = K.log(1-y_pred)*weight2
         elif self.loss == "binary_crossentropy":  # celoss
             pos_y = K.log(y_pred) * label_weight
-            neg_y = K.log(1 - y_pred) * label_weight
+            neg_y = K.log(1 - y_pred) * (1-label_weight)
         else:
             raise NameError('loss name error')
         return K.concatenate([pos_y,neg_y], axis=-1)
@@ -46,18 +50,17 @@ def meanLoss(y_true,y_pred):
     y_true = y_true[:,:6]
     pos_y = y_pred[:,:6]
     neg_y = y_pred[:, 6:]
-    loss = -(y_true * pos_y + (1 - y_true) *neg_y)
-    loss = K.mean(loss,axis=-1)/6
+    loss = y_true * pos_y + (1 - y_true) *neg_y
+    loss = -K.mean(loss,axis=-1)/2
     return loss
 
-def focalLoss(y_true,y_pred,alpha=3):
-    weight1 = K.pow(1 - y_pred, alpha)
-    weight2 = K.pow(y_pred, alpha)
-    loss = -(
-            y_true * K.log(y_pred) * weight1 +
-            (1 - y_true) * K.log(1 - y_pred) * weight2
-    )
-    loss = K.mean(loss,axis=-1) / 6
+def focalLoss(y_true,y_pred):
+    weight1 = K.pow(1 - y_pred, 3)
+    weight2 = K.pow(y_pred, 3)
+    loss = y_true * K.log(y_pred) * weight1 +\
+        (1 - y_true) * K.log(1 - y_pred) * weight2
+
+    loss = -K.mean(loss,axis=-1) / 6
     return loss
 
 def diceLoss(y_true, y_pred,smooth = 0):
@@ -132,7 +135,7 @@ class model:
 
     def select_feature(self,use_feature,char_weight):
         if use_feature:
-            dim_features = 4
+            dim_features = 9
             if USE_TOPIC:
                 dim_features += NUM_TOPIC
             if USE_LETTERS:
@@ -162,7 +165,7 @@ class model:
     def set_loss(self,output_layer):
         if BALANCE_GRAD:
             output_layer = balanceGradLayer(self.lossname)(output_layer)
-            Model(inputs=self.inputs, outputs=output_layer)
+            self.train_model=Model(inputs=self.inputs, outputs=output_layer)
         else:
             self.train_model = self.result_model
         self.train_model.compile(optimizer=self.opt,loss=self.loss)
@@ -177,24 +180,32 @@ class model:
             'gru2': gru2,
         }
 
-        if self.load_weight:
-            gru1_weight = np.load(WEIGHT_FILE+self.lossname+'gru1_weight.npy')
-            gru1.set_weights(gru1_weight)
-            gru2_weight = np.load(WEIGHT_FILE+self.lossname+'gru2_weight.npy')
-            gru2.set_weights(gru2_weight)
+        embedding_layer = SpatialDropout1D(0.3)(self.embedding_layer)
 
-        x = gru1(self.embedding_layer)
-        x = gru2(x)
+        x = gru1(embedding_layer)
+
+        x = gru2(x)        # 200 * 80
+
         x1 = GlobalMaxPooling1D()(x)
         x2 = GlobalAveragePooling1D()(x)
 
         self.cat_layers += [x1,x2]
 
         y = Concatenate()(self.cat_layers)
-        output_layer = Dense(6, activation="sigmoid")(y)
+        output_layer = Dense(6, activation="sigmoid",
+                             # kernel_regularizer=regularizers.l2(0.01)
+                             )(y)
         self.result_model = Model(inputs=self.inputs, outputs=output_layer)
 
+        print(self.result_model.summary())
+
         self.set_loss(output_layer)
+
+        if self.load_weight:
+            gru1_weight = np.load(WEIGHT_FILE+self.lossname+'gru1_weight.npy')
+            gru1.set_weights(gru1_weight)
+            gru2_weight = np.load(WEIGHT_FILE+self.lossname+'gru2_weight.npy')
+            gru2.set_weights(gru2_weight)
 
         return layer
 
@@ -231,7 +242,7 @@ class model:
         self.cat_layers +=[x1,x2]
 
         y = Concatenate()(self.cat_layers)
-        output_layer = Dense(6, activation="sigmoid")(y)
+        output_layer = Dense(6, activation="sigmoid",)(y)
         self.result_model = Model(inputs=self.inputs, outputs=output_layer)
         self.set_loss(output_layer)
         return layer

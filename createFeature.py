@@ -404,6 +404,40 @@ def get_char_text():
     train.to_csv(PATH + 'clean_train.csv', index=False)
     test.to_csv(PATH + 'clean_test.csv', index=False)
 
+def char2idx(wordvecfile):
+    train = input.read_dataset('clean_train.csv')
+    test = input.read_dataset('clean_test.csv')
+    train['comment_text'] = train['comment_text'].fillna(replace_word['unknow'])
+    test['comment_text'] = test['comment_text'].fillna(replace_word['unknow'])
+    text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
+    text = tokenize_word(text)
+    input.read_wordvec(wordvecfile)
+    def get_ch_seqs(text):
+        results = []
+        pool = mlp.Pool(mlp.cpu_count())
+
+        comments = list(text)
+        aver_t = int(len(text) / mlp.cpu_count()) + 1
+        for i in range(mlp.cpu_count()):
+            result = pool.apply_async(batch_char_analyzer,
+                                      args=(comments[i * aver_t: (i + 1) * aver_t], True))
+            results.append(result)
+        pool.close()
+        pool.join()
+
+        ch_seqs = []
+        for result in results:
+            char_seq = result.get()
+            ch_seqs.extend(char_seq)
+
+        return ch_seqs
+
+    import itertools,json
+    corpus_chars = list(itertools.chain.from_iterable(corpus_chars)) #2维list展开成1维
+    idx_to_char = list(set(corpus_chars))
+    char_to_idx = dict([(char, i) for i, char in enumerate(idx_to_char)])
+    with open(PATH+'char2index.json', 'w') as f:
+        f.write(json.dumps(char_to_idx, indent=4, separators=(',', ': ')))
 
 if __name__ == '__main__':
     get_char_text()
