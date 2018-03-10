@@ -102,6 +102,8 @@ def cleanComment(comments):
         comment = re.sub(patternRgb, " ", comment)
 
         comment = correct_typos(comment)
+        comment = re.sub("_", ' ', comment)
+        comment = re.sub("#", ' # ', comment)
         # 去除非ascii字符
         comment = re.sub("[^\x00-\x7F]+", " ", comment)
 
@@ -125,6 +127,7 @@ def cleanComment(comments):
 
         comment = comment.lower()
         comment = re.sub("-", ' ', comment)
+
         comment = re.sub('\s+',' ',comment)
         comment = re.sub('(\. )+',' . ',comment)
         comment = re.sub('(\. \.)+',' . ',comment)

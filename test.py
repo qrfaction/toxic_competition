@@ -47,24 +47,24 @@ def post_deal():
 def bagging():
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
-    # PATH = 'results/'
+    PATH = 'results/'
     file_weight = {
-        # 'GRU1.csv.gz':6,
-        # 'GRU2.csv.gz':6,
-        # 'GRU3.csv.gz':6,
-        # 'frGRU1.csv.gz':4,
-        # 'gloveGRU1.csv.gz':4,
-        # 'kernel.csv.gz':26,
-        # 'kernel2.csv.gz':10,
-        # 'focalloss19.csv.gz':10,
-        'results/celoss.csv.gz':2,
-        'results/mybest62.csv.gz':10,
+        # 'corr_blend.csv.gz':10,
+        # 'my56.csv.gz':10,
+        # "celoss_56.csv.gz":8,
+        # "celoss2_55.csv.gz":5,
+
+
+        # "focal62.csv.gz":6,"mybest63.csv.gz":8,    9865
+        # "62_63To65.csv.gz":7,"one_more_blend_65.csv.gz":5,   9874
+        "62_63To65.csv.gz":5,
+        "blend_it_all_68.csv.gz":5,
     }
-    output = pd.read_csv('results/baseline.csv.gz')
+    output = pd.read_csv(PATH+'baseline.csv.gz')
     output[list_classes] = 0
     norm = 0
     for file,weight in file_weight.items():
-        result = pd.read_csv(file)
+        result = pd.read_csv(PATH+file)
         output[list_classes] += weight*result[list_classes]
         norm +=weight
 
@@ -78,3 +78,5 @@ def bagging():
 # post_deal()
 bagging()
 # get_corr()
+# output = pd.read_csv('baseline.csv')
+# print(output.isnull().sum())

@@ -1,13 +1,13 @@
 replace_word = {
     'num':' ',
-    'shuaping':' _shuabing_ ',
-    'name':' _name_ ',
-    'unknow':' _unk_ ',
-    "link":" _link_ ",
-    "time":" _time_ ",
+    'shuaping':' #shuabing# ',
+    'name':' #name# ',
+    'unknow':' #unk# ',
+    "link":" #link# ",
+    "time":" #time# ",
 }
 
-USE_TOPIC = True
+USE_TOPIC = False
 USE_LETTERS = False
 
 USE_POSTAG = False
@@ -29,12 +29,9 @@ USE_CHAR_VEC =False
 LEN_CHAR_SEQ = 800
 
 model_setting = {
-    'hidden_size1' :160,
+    'hidden_size1' :170,
     'hidden_size2' :80,
 }
-
-
-
 
 blocked_ips = ["216.102.6.176",
                "216.120.176.2",
@@ -376,8 +373,6 @@ blocked_ips = ["216.102.6.176",
                "49.49.240.24",
                "96.31.10.178",
                "50.251.229.75"]
-
-
 
 
 APPO = {
@@ -1408,21 +1403,41 @@ APPO = {
 
 }
 
+USE_FAST =False
+
+# if __name__=='__main__':
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # model_setting['hidden_size1']=170
+    # model_setting['hidden_size2']=85
+    # from train import train
+    # train(outputfile='crawl_170_85.csv.gz', wordvec='crawl')
+    #
+    #
+    # model_setting['hidden_size1']=128
+    # model_setting['hidden_size2']=64
+    # from train import train
+    # train(outputfile='glove_64.csv.gz', wordvec='glove')
+    #
+    #
+    # model_setting['hidden_size1'] = 150
+    # model_setting['hidden_size2'] = 75
+    # train(outputfile='crawl_150_75.csv.gz', wordvec='crawl')
+    #
+    # model_setting['hidden_size1'] = 140
+    # model_setting['hidden_size2'] = 70
+    # from train import train
+    # train(outputfile='crawl_140_70.csv.gz', wordvec='crawl')
+    #
+    # model_setting['hidden_size1'] = 170
+    # model_setting['hidden_size2'] = 70
+    # from train import train
+    # train(outputfile='crawl_170_70.csv.gz', wordvec='crawl')
+    #
+    # model_setting['hidden_size1'] = 180
+    # model_setting['hidden_size2'] = 70
+    # from train import train
+    # train(outputfile='crawl_180_70.csv.gz', wordvec='crawl')
 
 
 

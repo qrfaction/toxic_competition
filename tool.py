@@ -154,7 +154,7 @@ def cal_mean(results,scores=None):
         weights = np.ones((len(results),6))
     else :
         scores = np.array(scores)
-        scores -= 0.98
+        scores -= 0.985
         scores *= 10000
         weights = np.int64(scores)
         print(weights)

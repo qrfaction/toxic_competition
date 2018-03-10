@@ -10,35 +10,22 @@ wordvec={
     'crawl':PATH+'crawl-300d-2M.vec',
     'word2vec':PATH+'word2vec.txt',
     'fasttext':PATH+'wiki.en.bin',
+    'glove':PATH+'glove.twitter.27B.200d.txt',
 }
 
 # 使用哪些特征
 usecols = [
     'comment_text',
     ##count feature
-    # 'total_length',
-    # 'capitals',
-    # 'caps_vs_length',
-    # 'num_exclamation_marks',
-    # 'num_question_marks',
-    # 'num_punctuation',
-    # 'num_symbols',
-    # 'num_words',
-    # 'words_vs_unique',
-    # 'num_smilies',
-    # 'count_word',
-    # 'count_unique_word',
-    # "count_punctuations",
-    # "count_stopwords",
-    # "mean_word_len",
-    # 'word_unique_percent',
-    # 'punct_percent',
 
-    'total_length',
-    'count_unique_word',
+
+
+    'count_sent',
+    # 'total_length',
+    # 'count_unique_word',
     'capitals',
     "mean_word_len",
-    'caps_vs_length',
+    # 'caps_vs_length',
 
 
     # 'toxicity_score_level',
@@ -51,6 +38,7 @@ usecols = [
 
 ]
 from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
+
 if USE_TOPIC:
     usecols += ['topic' + str(i) for i in range(NUM_TOPIC)]
 if USE_LETTERS:
@@ -99,18 +87,20 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
             # 'toxicity_level',
             'attacklevel',
 
-            'total_length',
-            'count_unique_word',
+            'count_sent',
+            # 'total_length',
+            # 'count_unique_word',
             'capitals',
             "mean_word_len",
-            'caps_vs_length',
+            # 'caps_vs_length',
         ]
 
         dataset = train.append(test)
+
+        print(dataset[normilze_feature].describe())
         for col in normilze_feature:
             train[col] = (train[col] - dataset[col].mean()) / dataset[col].std()
             test[col] = (test[col] - dataset[col].mean()) / dataset[col].std()
-            print(train[col].isnull().sum())
 
         return train,test
 

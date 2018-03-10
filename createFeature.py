@@ -11,19 +11,20 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from embedding import tokenize_word,batch_char_analyzer
 
 
+
+
 def countFeature(dataset):
     def CountFeatures(df):
         # 句子长度
         df['total_length'] = df['comment_text'].apply(lambda x:min(len(x),200*4))
         # 大写字母个数
-        df['capitals'] = df['comment_text'].apply(lambda x: sum(1 for c in x if c.isupper()))
-        df['caps_vs_length'] = df.apply(lambda x: float(x['capitals']) / float(x['total_length']),
-                                        axis=1)
+        df['capitals'] = df['comment_text'].apply(lambda x: min(sum(1 for c in x if c.isupper()),20))
+        df['caps_vs_length'] = df['capitals']/ df['total_length']
         df['num_words'] = df['comment_text'].apply(lambda x: min(len(x.split()),200))
 
         df['count_unique_word'] = df["comment_text"].apply(lambda x:
                                                            min(len(set(str(x).split())) ,200))
-        df["mean_word_len"] = df["comment_text"].apply(lambda x: np.mean([len(w) for w in str(x).split()]))
+        df["mean_word_len"] = df["comment_text"].apply(lambda x: min(np.mean([len(w) for w in str(x).split()]),10))
 
         return df
 
@@ -49,8 +50,8 @@ def countFeature(dataset):
         comment = re.sub("\s+", " ", comment)
 
         return comment
-
-    dataset['count_sent'] = dataset["comment_text"].apply(lambda x: len(re.findall("\n", str(x))) + 1)
+    dataset["comment_text"]=dataset["comment_text"].fillna(replace_word['unknow'])
+    dataset['count_sent'] = dataset["comment_text"].apply(lambda x: min(len(re.findall("\n", str(x))) + 1,10))
     dataset["comment_text"] = dataset["comment_text"].apply(deal_space)
     dataset = CountFeatures(dataset)
     dataset = letter_distribution(dataset)
@@ -58,83 +59,45 @@ def countFeature(dataset):
 
 ''' 封装TF-IDF '''
 
-def tfidfFeature(clean_corpus, mode="other", params_tfidf=None, n_components=128):
+def tfidfFeature(n_components=128):
     ''' TF-IDF Vectorizer '''
-
-    def getTfidfVector(clean_corpus,  # 之后的参数都是TfidfVectorizer()的参数
-                       min_df=5, max_features=100000,
-                       strip_accents='unicode', analyzer='word', ngram_range=(1, 1),
-                       use_idf=1, smooth_idf=True, sublinear_tf=True):
-
-        tfv = TfidfVectorizer(min_df=min_df, max_features=max_features,
-                              strip_accents=strip_accents, analyzer=analyzer, ngram_range=ngram_range,
-                              use_idf=use_idf, smooth_idf=smooth_idf, sublinear_tf=sublinear_tf)
-        tfv.fit(clean_corpus)
-        features_tfidf = np.array(tfv.get_feature_names())
-        model_tfidf = tfv.transform(clean_corpus)
-        return model_tfidf, features_tfidf
-
-    ''' PCA降维 '''
+    train = input.read_dataset('clean_train.csv')
+    test = input.read_dataset('clean_test.csv')
+    train['comment_text'] = train['comment_text'].fillna(replace_word['unknow'])
+    test['comment_text'] = test['comment_text'].fillna(replace_word['unknow'])
+    text = train['comment_text'].values.tolist() + test['comment_text'].values.tolist()
 
     def pca_compression(model_tfidf, n_components):
         np_model_tfidf = model_tfidf.toarray()
-        pca = KernelPCA(n_components=n_components,kernel='rbf',n_jobs=-1)
+        pca = PCA(n_components=n_components)
         pca_model_tfidf = pca.fit_transform(np_model_tfidf)
         return pca_model_tfidf
 
-    ##### 确认模式 #####
-    if mode == "other":
-        # 初始化一套参数，然后用自定义的参数去替换更改后的
-        params = {
-            "min_df": 100, "max_features": 100000,
-            "strip_accents": 'unicode', "analyzer": 'word', "ngram_range": (1, 1),
-            "use_idf": 1, "smooth_idf": 1, "sublinear_tf": 1,
-            "stop_words": 'english'
-        }
-        for item, value in params_tfidf.items():
-            params[item] = params_tfidf[item]
-    else:  # mode = "unigrams"/"bigrams"/"charngrams"
-        ''' 内置3套参数 '''
-        if mode == "unigrams":  # 单个词
-            params = {
-                "min_df": 5, "max_features": 100000,
-                "strip_accents": 'unicode', "analyzer": 'word', "ngram_range": (1, 1),
-                "use_idf": 1, "smooth_idf": 1, "sublinear_tf": 1,
-                "stop_words": 'english'
-            }
-        elif mode == "bigrams":  # 两个词
-            params = {
-                "min_df": 5, "max_features": 30000,
-                "strip_accents": 'unicode', "analyzer": 'word', "ngram_range": (2, 2),
-                "use_idf": 1, "smooth_idf": 1, "sublinear_tf": 1,
-                "stop_words": 'english'
-            }
-        elif mode == "charngrams":  # 长度为4的字符
-            params = {
-                "min_df": 100, "max_features": 30000,
-                "strip_accents": 'unicode', "analyzer": 'char', "ngram_range": (1, 4),
-                "use_idf": 1, "smooth_idf": 1, "sublinear_tf": 1,
-                "stop_words": 'english'
-            }
-        else:
-            print("mode error...")
-            return
 
-    # 获取tfidf后的稀疏矩阵sparse
-    model_tfidf, features_tfidf = getTfidfVector(clean_corpus,  # 之后的参数都是TfidfVectorizer()的参数
-                                                 min_df=params["min_df"], max_features=params["max_features"],
-                                                 strip_accents=params["strip_accents"], analyzer=params["analyzer"],
-                                                 ngram_range=params["ngram_range"],
-                                                 use_idf=params["use_idf"], smooth_idf=params["smooth_idf"],
-                                                 sublinear_tf=params["sublinear_tf"],
-                                                 stop_words=params["stop_words"])
+    tfv = TfidfVectorizer(min_df=100, max_features=30000,
+                          strip_accents='unicode', analyzer='char', ngram_range= (2, 4),
+                          use_idf=1, smooth_idf=True, sublinear_tf=True)
+    model_tfidf = tfv.fit_transform(text)
+
     # 获取pca后的np
     pca_model_tfidf = pca_compression(model_tfidf, n_components=n_components)
     # 获取添加特征名后的pd
-    n = params["ngram_range"][0]  # 生成特征列名时的n的值
-    pd_pca_model_tfidf = pd.DataFrame(pca_model_tfidf,
-                                      columns=["tfidf" + str(n) + "gram" + str(x) for x in range(1, n_components + 1)])
-    return pd_pca_model_tfidf
+    print(pca_model_tfidf.shape)
+    cols = ["tfidf" + str(x) for x in range( n_components)]
+    pca_model_tfidf = pd.DataFrame(pca_model_tfidf,columns=cols)
+
+    for col in cols:
+        pca_model_tfidf[col] = \
+            (pca_model_tfidf[col]-pca_model_tfidf[col].mean())/pca_model_tfidf[col].std()
+        list_col = pca_model_tfidf[col].tolist()
+        train[col] = list_col[:len(train)]
+        test[col] = list_col[len(train):]
+
+    print('save')
+    train.to_csv(PATH + 'clean_train.csv', index=False)
+    test.to_csv(PATH + 'clean_test.csv', index=False)
+
+
 
 def doc2bow(text,dictionary):
     return [dictionary.doc2bow(t) for t in tqdm(text)]
@@ -440,4 +403,4 @@ def char2idx(wordvecfile):
         f.write(json.dumps(char_to_idx, indent=4, separators=(',', ': ')))
 
 if __name__ == '__main__':
-    get_char_text()
+    tfidfFeature(128)

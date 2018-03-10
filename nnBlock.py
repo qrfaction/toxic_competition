@@ -1,5 +1,5 @@
 from keras.layers import CuDNNGRU,Input,Embedding,Bidirectional,Dropout,Dense,GlobalMaxPooling1D,GlobalAveragePooling1D,Concatenate
-from keras.layers import Conv1D,Multiply,Permute,MaxPool1D,SpatialDropout1D,RepeatVector,multiply,Flatten,Activation
+from keras.layers import Conv1D,Multiply,Permute,MaxPool1D,SpatialDropout1D,average
 from keras.models import Model
 from keras.optimizers import RMSprop,Nadam
 from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC,model_setting,WEIGHT_FILE,BALANCE_GRAD,USE_CHAR_VEC,LEN_CHAR_SEQ
@@ -10,6 +10,8 @@ from keras import backend as K
 from keras import initializers
 
 K.clear_session()
+
+USE_BOOST = True
 
 
 
@@ -104,7 +106,7 @@ def char2vec(X,Y,embedding_matrix,batchsize = 102400,epochs=5):
 class model:
 
     def __init__(self,embedding_matrix ,trainable=False,use_feature = True,
-                 loss="binary_crossentropy",load_weight = False,char_weight=None):
+                 loss="binary_crossentropy",load_weight = False,char_weight=None,boost=False):
 
         comment_layer = Input(shape=(200,), name='comment')
         self.embedding_layer = Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
@@ -116,8 +118,13 @@ class model:
         self.select_feature(use_feature,char_weight)
 
         self.load_weight = load_weight
-        self.opt = Nadam(lr=0.001)
+        self.opt = Nadam(lr=0.0008)
         self.select_loss(loss)
+
+        self.boost = boost
+        if self.boost:
+            self.boost_layer = Input(shape=(6,), name='boost')
+            self.inputs.append(self.boost_layer)
 
     def select_loss(self,loss):
         self.lossname = loss
@@ -135,7 +142,7 @@ class model:
 
     def select_feature(self,use_feature,char_weight):
         if use_feature:
-            dim_features = 9
+            dim_features = 7
             if USE_TOPIC:
                 dim_features += NUM_TOPIC
             if USE_LETTERS:
@@ -192,9 +199,11 @@ class model:
         self.cat_layers += [x1,x2]
 
         y = Concatenate()(self.cat_layers)
-        output_layer = Dense(6, activation="sigmoid",
-                             # kernel_regularizer=regularizers.l2(0.01)
-                             )(y)
+        # y = Dense(90,activation='relu')(y)
+        output_layer = Dense(6, activation="sigmoid")(y)
+        if self.boost:
+            output_layer = average([output_layer,self.boost_layer])
+
         self.result_model = Model(inputs=self.inputs, outputs=output_layer)
 
         print(self.result_model.summary())
@@ -247,14 +256,13 @@ class model:
         self.set_loss(output_layer)
         return layer
 
-
-    def fit(self,X,Y,batch_size,epochs,verbose):
+    def fit(self,X,Y,batch_size,epochs,verbose=0):
         if BALANCE_GRAD:
             self.train_model.fit(X,np.concatenate([Y,Y],axis=1),batch_size,epochs,verbose)
         else:
             self.train_model.fit(X,Y, batch_size, epochs, verbose)
 
-    def predict(self,X,batch_size=2048, verbose=1):
+    def predict(self,X,batch_size=2048, verbose=0):
         return self.result_model.predict(X,batch_size,verbose)
 
     def save_weights(self,path):

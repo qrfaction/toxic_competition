@@ -5,7 +5,7 @@ import pandas as pd
 import multiprocessing as mlp
 import input
 from nltk.tokenize import TweetTokenizer
-from Ref_Data import PATH,FILTER_FREQ,USE_POSTAG,POSTAG_DIM
+from Ref_Data import PATH,FILTER_FREQ,USE_POSTAG,POSTAG_DIM,USE_FAST
 
 
 def tokenize_worker(sentences):
@@ -84,7 +84,8 @@ def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
 
     num_words = len(word_index) + 1
     # 停止符用0
-    embedding_matrix = np.zeros((num_words,dimension))
+    embedding_matrix = np.random.uniform(-0.25,0.25,(num_words,dimension))
+    embedding_matrix[0]=0
     print(embedding_matrix.shape)
     if USE_POSTAG:
         dimension -=POSTAG_DIM
@@ -92,11 +93,13 @@ def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
             tag = word2tag[word]
             embedding_matrix[i,dimension:] = np.array(postag_vec[tag])
 
-    ft_model = load_model(PATH + 'wiki.en.bin')
+
     print('num of word: ',len(word_index))
-    for word, i in tqdm(word_index.items()):
-        embedding_matrix[i, :dimension] = ft_model.get_word_vector(word).astype('float32')
-    del ft_model
+    if USE_FAST:
+        ft_model = load_model(PATH + 'wiki.en.bin')
+        for word, i in tqdm(word_index.items()):
+            embedding_matrix[i, :dimension] = ft_model.get_word_vector(word).astype('float32')
+        del ft_model
 
     if wordvecfile !='fasttext':
         embeddings_index = input.read_wordvec(wordvecfile)

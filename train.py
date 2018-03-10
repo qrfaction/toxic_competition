@@ -60,11 +60,11 @@ def _train_model(model,model_name ,train_x, train_y, val_x, val_y,test ,batchsiz
     while True:
 
         samples_x,samples_y = generator.genrerate_samples()
-        model.fit(samples_x,samples_y,batch_size=batchsize,epochs=1,verbose=1)
+        model.fit(samples_x,samples_y,batch_size=batchsize,epochs=1,verbose=0)
 
-        if epoch >= 10:
+        if epoch >= 30:
             # evaulate
-            y_pred = model.predict(val_x, batch_size=2048, verbose=1)
+            y_pred = model.predict(val_x, batch_size=2048, verbose=0)
             Scores = []
             for i in range(6):
                 score = roc_auc_score(val_y[:, i], y_pred[:, i])
@@ -73,32 +73,38 @@ def _train_model(model,model_name ,train_x, train_y, val_x, val_y,test ,batchsiz
             print(cur_score)
             print(Scores)
 
-            if epoch == 10 or best_score < cur_score:
+            if epoch == 30 or best_score < cur_score:
                 best_score = cur_score
                 best_epoch = epoch
                 print(best_score,best_epoch,'\n')
                 weights = Scores
                 model.save_weights(WEIGHT_FILE + model_name)
-            elif epoch - best_epoch > 5 :  # patience 为5
+            elif epoch - best_epoch > 12 :  # patience 为5
                 model.load_weights(WEIGHT_FILE + model_name, by_name=False)
                 test_pred = model.predict(test,batch_size=2048)
                 return test_pred,weights
         epoch += 1
 
 
-def train(maxlen=200):
-    wordvecfile = (
-                    ('crawl', 300),
-                    # ('fasttext',300),
-                )
+def train(maxlen=200,outputfile='baseline.csv.gz',wordvec='crawl'):
+    if wordvec=='crawl':
+        wordvecfile = (
+                        (wordvec, 300),
+                        # ('fasttext',300),
+                    )
+    elif wordvec=='glove':
+        wordvecfile = (
+            (wordvec, 200),
+            # ('fasttext',300),
+        )
     if USE_CHAR_VEC:
         trainset, testset, labels, embedding_matrix,char_weight = \
             input.get_train_test(maxlen, trainfile='clean_train.csv', wordvecfile=wordvecfile)
-        embedding_matrix = embedding_matrix['crawl']
+        embedding_matrix = embedding_matrix[wordvec]
     else:
         trainset, testset, labels ,embedding_matrix = \
         input.get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=wordvecfile)
-    embedding_matrix = embedding_matrix['crawl']
+    embedding_matrix = embedding_matrix[wordvec]
 
     """
         loss :  focalLoss   diceLoss  binary_crossentropy
@@ -116,7 +122,7 @@ def train(maxlen=200):
     if USE_CHAR_VEC:
         model_para['char_weight'] = char_weight
 
-    cv(model_para,trainset,labels,testset,outputfile='baseline.csv.gz',K=5)
+    cv(model_para,trainset,labels,testset,outputfile=outputfile,K=8)
 
 
 if __name__ == "__main__":
