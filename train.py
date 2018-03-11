@@ -114,7 +114,7 @@ def train(maxlen=200,outputfile='baseline.csv.gz',wordvec='crawl'):
     model_para = {
         'embedding_matrix':embedding_matrix,
         'trainable':False,
-        'loss':'focalLoss',
+        'loss':'binary_crossentropy',
         'load_weight' :False,
         'modelname':'rnn',
         'char_weight':None
@@ -122,7 +122,7 @@ def train(maxlen=200,outputfile='baseline.csv.gz',wordvec='crawl'):
     if USE_CHAR_VEC:
         model_para['char_weight'] = char_weight
 
-    cv(model_para,trainset,labels,testset,outputfile=outputfile,K=8)
+    cv(model_para,trainset,labels,testset,outputfile=outputfile,K=10)
 
 
 if __name__ == "__main__":

@@ -5,9 +5,24 @@ import numpy as np
 from Ref_Data import  BATCHSIZE,WEIGHT_FILE,USE_CHAR_VEC
 import input
 
-def Boost(X,Y,test,para,num_model = 3,outputfile='boost.csv.gz'):
+def get_weight(y_scores,y,old_weight):
+    y_pred = np.around(y)
+    error = (y_pred!=y)
+    error = error.mean()
+    error = 0.5*np.log((1-error)/error)
+    y = (y-0.5)*2
+    y_scores = (y_scores-0.5)*2
+    weight = np.exp(-error*y_scores*y)
+    weight = weight.mean(axis=-1)
+    weight = old_weight*weight
+    Z = len(y)/weight.sum()
+    weight*=Z
+    return weight
 
-    def _train_model(model, model_name,train_x, train_y,val_x, val_y,test,batchsize=BATCHSIZE, frequecy=50,init=30):
+def Boost(X,Y,test,para,setting,outputfile='boost.csv.gz',cal_weight = False):
+
+    def _train_model(model, model_name,train_x, train_y,val_x, val_y,
+                     test,batchsize=BATCHSIZE, frequecy=50,init=30):
         from sklearn.metrics import roc_auc_score
 
         generator = tool.Generate(train_x, train_y, batchsize=frequecy * batchsize)
@@ -50,12 +65,12 @@ def Boost(X,Y,test,para,num_model = 3,outputfile='boost.csv.gz'):
             trainable=model_para['trainable'],
             load_weight=model_para['load_weight'],
             loss=model_para['loss'],
-            boost=model_para['boost']
+            boost=model_para['boost'],
         )
         m.get_layer(model_para['modelname'])
         return m
 
-    def cv(model_para, X, Y, test, K=5,init=30):
+    def cv(model_para, X, Y, test, K=5,init=30,sample_weight=None):
 
 
         kf = KFold(len(Y), n_folds=K, shuffle=False)
@@ -73,9 +88,9 @@ def Boost(X,Y,test,para,num_model = 3,outputfile='boost.csv.gz'):
 
             model = get_model(model_para)
             test_pred, val_score = _train_model(model,
-                                                  model_para['modelname'] + "_" + str(i) + ".h5",
-                                                  trainset, label_train,
-                                                  validset, label_valid, test,init=init)
+                                model_para['modelname'] + "_" + str(i) + ".h5",
+                                trainset, label_train,
+                                validset, label_valid, test,init=init)
 
             train_score[valid_index] = val_score
             results.append(test_pred)
@@ -85,18 +100,22 @@ def Boost(X,Y,test,para,num_model = 3,outputfile='boost.csv.gz'):
 
     train_score,test_score = cv(para,X,Y,test,init=30)
     para['boost'] = True
-    for i in range(num_model):
+    if cal_weight:
+        para['sample_weight'] = np.ones(len(Y))
+    for loss,model_name in setting:
         X['boost'] = train_score
         test['boost'] = test_score
+        para['loss'] = loss
+        para['modelname'] = model_name
+        if cal_weight:
+            para['sample_weight'] = get_weight(train_score,Y,para['sample_weight'])
         train_score,test_score = cv(para, X, Y, test,init=5)
-
 
 
     list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
     sample_submission = input.read_dataset('sample_submission.csv')
     sample_submission[list_classes] = test_score
     sample_submission.to_csv(outputfile, index=False, compression='gzip')
-
 
 def ensemble_boost(maxlen=200,wordvec='crawl'):
 
@@ -120,9 +139,29 @@ def ensemble_boost(maxlen=200,wordvec='crawl'):
         'load_weight': False,
         'modelname': 'rnn',
         'char_weight': None,
-        'boost':False
+        'boost':False,
+        'sample_weight':None,
     }
-    Boost(trainset,labels,testset,model_para)
+    setting = [
+        ['focalLoss','rnn'],
+        ['focalLoss','rnn']
+    ]
+    Boost(trainset,labels,testset,model_para,setting,outputfile='focal.csv.gz')
+
+    setting = [
+        ['focalLoss', 'rnn'],
+        ['focalLoss', 'rnn']
+    ]
+    Boost(trainset, labels, testset, model_para, setting,cal_weight=True,outputfile='focal_cal_weight.csv.gz')
+
+    setting = [
+        ['focalLoss', 'rnn'],
+        ['binary_crossentropy', 'rnn']
+    ]
+    Boost(trainset, labels, testset, model_para, setting, cal_weight=True, outputfile='cal_weight.csv.gz')
+
+    from train import train
+    train()
 
 if __name__ == "__main__":
     ensemble_boost()

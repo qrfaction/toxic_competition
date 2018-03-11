@@ -4,7 +4,7 @@ import numpy as np
 import multiprocessing as mlp
 from tqdm import tqdm
 from gensim.matutils import corpus2csc
-from Ref_Data import replace_word,FILTER_FREQ,NUM_TOPIC,POSTAG_DIM,PATH
+from Ref_Data import replace_word,FILTER_FREQ,NUM_TOPIC,POSTAG_DIM,PATH,CHAR_N
 import pandas as pd
 from sklearn.decomposition import PCA,KernelPCA,SparsePCA
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -59,7 +59,7 @@ def countFeature(dataset):
 
 ''' 封装TF-IDF '''
 
-def tfidfFeature(n_components=128):
+def tfidfFeature(n_components=CHAR_N):
     ''' TF-IDF Vectorizer '''
     train = input.read_dataset('clean_train.csv')
     test = input.read_dataset('clean_test.csv')
@@ -403,4 +403,4 @@ def char2idx(wordvecfile):
         f.write(json.dumps(char_to_idx, indent=4, separators=(',', ': ')))
 
 if __name__ == '__main__':
-    tfidfFeature(128)
+    tfidfFeature(CHAR_N)

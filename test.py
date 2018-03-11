@@ -51,8 +51,8 @@ def bagging():
     file_weight = {
         # 'corr_blend.csv.gz':10,
         # 'my56.csv.gz':10,
-        # "celoss_56.csv.gz":8,
-        # "celoss2_55.csv.gz":5,
+        # "celoss_56.csv.gz":2,
+        "celoss2_55.csv.gz":1,
 
 
         # "focal62.csv.gz":6,"mybest63.csv.gz":8,    9865

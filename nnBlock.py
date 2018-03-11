@@ -1,8 +1,9 @@
 from keras.layers import CuDNNGRU,Input,Embedding,Bidirectional,Dropout,Dense,GlobalMaxPooling1D,GlobalAveragePooling1D,Concatenate
-from keras.layers import Conv1D,Multiply,Permute,MaxPool1D,SpatialDropout1D,average
+from keras.layers import Conv1D,Multiply,Permute,MaxPool1D,SpatialDropout1D,concatenate,Activation
 from keras.models import Model
 from keras.optimizers import RMSprop,Nadam
-from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC,model_setting,WEIGHT_FILE,BALANCE_GRAD,USE_CHAR_VEC,LEN_CHAR_SEQ
+from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC,model_setting,
+from Ref_Data import BATCHSIZE,WEIGHT_FILE,BALANCE_GRAD,USE_CHAR_VEC,LEN_CHAR_SEQ,USE_TFIDF,CHAR_N
 from keras import regularizers
 import numpy as np
 from keras.engine.topology import Layer
@@ -70,6 +71,27 @@ def diceLoss(y_true, y_pred,smooth = 0):
     loss = - (2. * intersection + smooth) / (K.sum(y_true) + K.sum(y_pred) + smooth)
     return loss
 
+class boostLayer(Layer):
+
+    def __init__(self,**kwargs):
+        self.output_dim = 6
+        super(boostLayer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        self.kernel = self.add_weight(name='kernel',
+                                      shape=(6,),
+                                      initializer=initializers.Zeros(),
+                                      trainable=True)
+        super(boostLayer, self).build(input_shape)
+
+    def call(self,scores):
+        label_weight = K.sigmoid(self.kernel)
+        last_scores = scores[:,:6]
+        cur_scores = scores[:,6:]
+        return cur_scores*label_weight + last_scores*(1-label_weight)
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], self.output_dim)
+
 def pearsonLoss(y_true,y_pred):
     std_y_ture = K.std(y_true,axis=1)
     std_y_pred = K.std(y_pred, axis=1)
@@ -81,6 +103,14 @@ def pearsonLoss(y_true,y_pred):
     loss = K.squeeze(loss,axis=0)
     return -K.mean(loss)
 
+def rankLoss(y_true,y_pred,margin = 1):
+    loss = 0
+    for i in range(6):
+        for row in range(BATCHSIZE):
+            for col in range(BATCHSIZE):
+                loss=loss+K.maximum(0,margin
+                    - (y_true[row,i]-y_true[col,i])(y_pred[row,i]-y_pred[col,i]))
+    return loss
 
 def char2vec(X,Y,embedding_matrix,batchsize = 102400,epochs=5):
 
@@ -106,7 +136,7 @@ def char2vec(X,Y,embedding_matrix,batchsize = 102400,epochs=5):
 class model:
 
     def __init__(self,embedding_matrix ,trainable=False,use_feature = True,
-                 loss="binary_crossentropy",load_weight = False,char_weight=None,boost=False):
+                 loss="binary_crossentropy",load_weight = False,char_weight=None,boost=False,):
 
         comment_layer = Input(shape=(200,), name='comment')
         self.embedding_layer = Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
@@ -134,6 +164,8 @@ class model:
             self.loss = diceLoss
         elif loss == 'binary_crossentropy':
             self.loss = 'binary_crossentropy'
+        elif loss == 'rankLoss':
+            self.loss = rankLoss
         else:
             raise NameError("loss name error in model")
 
@@ -147,6 +179,8 @@ class model:
                 dim_features += NUM_TOPIC
             if USE_LETTERS:
                 dim_features += 27
+            if USE_TFIDF:
+                dim_features += CHAR_N
             features_layer = Input(shape=(dim_features,), name='countFeature')
             self.inputs.append(features_layer)
             self.cat_layers.append(features_layer)
@@ -160,6 +194,7 @@ class model:
             x4 = GlobalAveragePooling1D()(gru3)
             self.cat_layers +=[x3,x4]
             self.inputs.append(char_input)
+
 
     def get_layer(self,modelname):
         if modelname == 'rnn':
@@ -200,15 +235,24 @@ class model:
 
         y = Concatenate()(self.cat_layers)
         # y = Dense(90,activation='relu')(y)
-        output_layer = Dense(6, activation="sigmoid")(y)
-        if self.boost:
-            output_layer = average([output_layer,self.boost_layer])
 
-        self.result_model = Model(inputs=self.inputs, outputs=output_layer)
+        fc = Dense(6)
+        result_layer = Activation(activation='sigmoid')(y)
+
+
+        if self.boost:
+            result_layer = concatenate([result_layer,self.boost_layer],axis=-1)
+            result_layer = boostLayer()(result_layer)
+
+        self.result_model = Model(inputs=self.inputs, outputs=result_layer)
 
         print(self.result_model.summary())
 
-        self.set_loss(output_layer)
+        if self.lossname == 'rankLoss':
+            loss_layer = fc
+        else:
+            loss_layer = result_layer
+        self.set_loss(loss_layer)
 
         if self.load_weight:
             gru1_weight = np.load(WEIGHT_FILE+self.lossname+'gru1_weight.npy')
@@ -256,11 +300,11 @@ class model:
         self.set_loss(output_layer)
         return layer
 
-    def fit(self,X,Y,batch_size,epochs,verbose=0):
+    def fit(self,X,Y,batch_size,epochs,sample_weight,verbose=0):
         if BALANCE_GRAD:
-            self.train_model.fit(X,np.concatenate([Y,Y],axis=1),batch_size,epochs,verbose)
+            self.train_model.fit(X,np.concatenate([Y,Y],axis=1),batch_size,epochs,verbose,sample_weight)
         else:
-            self.train_model.fit(X,Y, batch_size, epochs, verbose)
+            self.train_model.fit(X,Y, batch_size, epochs, verbose,sample_weight)
 
     def predict(self,X,batch_size=2048, verbose=0):
         return self.result_model.predict(X,batch_size,verbose)

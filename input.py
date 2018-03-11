@@ -2,7 +2,7 @@ import embedding
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
-from Ref_Data import replace_word,PATH,USE_POSTAG,USE_CHAR_VEC,WEIGHT_FILE,LEN_CHAR_SEQ
+from Ref_Data import replace_word,PATH,USE_POSTAG,USE_CHAR_VEC,WEIGHT_FILE,LEN_CHAR_SEQ,USE_TFIDF,CHAR_N
 
 wordvec={
     'glove42':PATH+'glove.42B.300d.txt',
@@ -46,6 +46,10 @@ if USE_LETTERS:
     usecols.append('distri_!')
 if USE_CHAR_VEC:
     usecols.append('char_text')
+if USE_TFIDF:
+    usecols += ["tfidf" + str(x) for x in range(CHAR_N)]
+
+
 
 def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',300),)):
     """
