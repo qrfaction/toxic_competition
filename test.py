@@ -52,13 +52,14 @@ def bagging():
         # 'corr_blend.csv.gz':10,
         # 'my56.csv.gz':10,
         # "celoss_56.csv.gz":2,
-        "celoss2_55.csv.gz":1,
-
+        "celoss64.csv.gz":1,
+        # "focal63.csv.gz":5,
 
         # "focal62.csv.gz":6,"mybest63.csv.gz":8,    9865
         # "62_63To65.csv.gz":7,"one_more_blend_65.csv.gz":5,   9874
+        "one_more_blend_65.csv.gz": 2,
         "62_63To65.csv.gz":5,
-        "blend_it_all_68.csv.gz":5,
+        "blend_it_all_68.csv.gz":4,
     }
     output = pd.read_csv(PATH+'baseline.csv.gz')
     output[list_classes] = 0
@@ -71,7 +72,7 @@ def bagging():
 
     output[list_classes] /= norm
 
-    output.to_csv('output.csv.gz',index=False,compression='gzip')
+    output.to_csv('output2.csv.gz',index=False,compression='gzip')
 
 # post_deal()
 # cal_mean()

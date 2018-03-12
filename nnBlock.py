@@ -1,10 +1,10 @@
 from keras.layers import CuDNNGRU,Input,Embedding,Bidirectional,Dropout,Dense,GlobalMaxPooling1D,GlobalAveragePooling1D,Concatenate
-from keras.layers import Conv1D,Multiply,Permute,MaxPool1D,SpatialDropout1D,concatenate,Activation
+from keras.layers import Conv1D,Multiply,Permute,MaxPool1D,SpatialDropout1D,concatenate,Activation,BatchNormalization,add
 from keras.models import Model
 from keras.optimizers import RMSprop,Nadam
-from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC,model_setting,
+from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
 from Ref_Data import BATCHSIZE,WEIGHT_FILE,BALANCE_GRAD,USE_CHAR_VEC,LEN_CHAR_SEQ,USE_TFIDF,CHAR_N
-from keras import regularizers
+import tensorflow as tf
 import numpy as np
 from keras.engine.topology import Layer
 from keras import backend as K
@@ -13,6 +13,8 @@ from keras import initializers
 K.clear_session()
 
 USE_BOOST = True
+
+
 
 
 
@@ -103,14 +105,56 @@ def pearsonLoss(y_true,y_pred):
     loss = K.squeeze(loss,axis=0)
     return -K.mean(loss)
 
-def rankLoss(y_true,y_pred,margin = 1):
+def rankLoss(y_true,y_pred):
     loss = 0
     for i in range(6):
-        for row in range(BATCHSIZE):
-            for col in range(BATCHSIZE):
-                loss=loss+K.maximum(0,margin
-                    - (y_true[row,i]-y_true[col,i])(y_pred[row,i]-y_pred[col,i]))
-    return loss
+        y = K.expand_dims(y_true[:,i],axis=1)    # [batch] -> [batch,1]
+        y = K.repeat_elements(y,BATCHSIZE,1)          #  [batch,1] -> [batch,batch]
+        y = y - K.transpose(y)
+
+        x = K.expand_dims(y_pred[:, i], axis=1)  # [batch] -> [batch,1]
+        x = K.repeat_elements(x,BATCHSIZE, 1)  # [batch,1] -> [batch,batch]
+        x = x - K.transpose(x)
+
+        label_y = K.pow(y,2)
+
+        logloss = K.log(K.sigmoid(y * x))*label_y      # y = 0的不产生loss
+
+        num_pos = K.sum(y_true[:,i])
+        num_neg = K.sum(1-y_true[:,i])
+
+        loss += -K.sum(logloss)/(num_neg*num_pos*2+1)
+    return loss/6
+
+# def rankLoss(y_true,y_pred):
+#     loss1 = 0
+#     for i in range(6):
+#         y = K.expand_dims(y_true[:,i],axis=1)    # [batch] -> [batch,1]
+#         y = K.repeat_elements(y,BATCHSIZE,1)          #  [batch,1] -> [batch,batch]
+#         y = y - K.transpose(y)
+#
+#         x = K.expand_dims(y_pred[:, i], axis=1)  # [batch] -> [batch,1]
+#         x = K.repeat_elements(x,BATCHSIZE, 1)  # [batch,1] -> [batch,batch]
+#         x = x - K.transpose(x)
+#
+#         label_y = K.pow(y,2)
+#
+#         logloss = K.log(K.sigmoid(y * x))*label_y      # y = 0的不产生loss
+#
+#
+#         num_pos = K.sum(y_true[:,i])
+#         num_neg = K.sum(1-y_true[:,i])
+#
+#         loss1 += -K.sum(logloss)/(num_neg*num_pos*2+1)
+#     loss1 = loss1/6
+#
+#     y_prob = K.sigmoid(y_pred)
+#     loss2 = y_true*K.log(y_prob)+(1-y_true)*K.log(1-y_prob)
+#     loss2 = -K.mean(loss2,axis=-1)/6
+#     loss = loss2 + loss1
+#     return loss
+
+
 
 def char2vec(X,Y,embedding_matrix,batchsize = 102400,epochs=5):
 
@@ -133,12 +177,15 @@ def char2vec(X,Y,embedding_matrix,batchsize = 102400,epochs=5):
     np.save(WEIGHT_FILE+"char_vec.npy", embed_layer.get_weights())
 
 
+
+
 class model:
 
     def __init__(self,embedding_matrix ,trainable=False,use_feature = True,
-                 loss="binary_crossentropy",load_weight = False,char_weight=None,boost=False,):
+                 loss="binary_crossentropy",load_weight = False,char_weight=None,boost=False,
+                 setting = None,maxlen=200):
 
-        comment_layer = Input(shape=(200,), name='comment')
+        comment_layer = Input(shape=(maxlen,), name='comment')
         self.embedding_layer = Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
                                     weights=[embedding_matrix], trainable=trainable)(comment_layer)
 
@@ -147,8 +194,10 @@ class model:
 
         self.select_feature(use_feature,char_weight)
 
+        self.model_setting = setting
+
         self.load_weight = load_weight
-        self.opt = Nadam(lr=0.0008)
+        self.opt = Nadam(lr=setting['lr'],schedule_decay=setting['decay'])
         self.select_loss(loss)
 
         self.boost = boost
@@ -156,8 +205,11 @@ class model:
             self.boost_layer = Input(shape=(6,), name='boost')
             self.inputs.append(self.boost_layer)
 
+
+
     def select_loss(self,loss):
         self.lossname = loss
+        print(loss)
         if loss == 'focalLoss':
             self.loss = focalLoss
         elif loss == 'diceLoss':
@@ -214,15 +266,18 @@ class model:
 
     def RNNmodel(self):
 
-        gru1 = Bidirectional(CuDNNGRU(model_setting['hidden_size1'], return_sequences=True), merge_mode='ave')
-        gru2 = Bidirectional(CuDNNGRU(model_setting['hidden_size2'], return_sequences=True), merge_mode='ave')
+        size_1 = self.model_setting['size1']
+        size_2 = self.model_setting['size2']
+        p = self.model_setting['dropout']
+        gru1 = Bidirectional(CuDNNGRU(size_1, return_sequences=True), merge_mode='ave')
+        gru2 = Bidirectional(CuDNNGRU(size_2, return_sequences=True), merge_mode='ave')
 
         layer = {
             'gru1':gru1,
-            'gru2': gru2,
+            'gru2':gru2,
         }
 
-        embedding_layer = SpatialDropout1D(0.3)(self.embedding_layer)
+        embedding_layer = SpatialDropout1D(p)(self.embedding_layer)
 
         x = gru1(embedding_layer)
 
@@ -236,8 +291,8 @@ class model:
         y = Concatenate()(self.cat_layers)
         # y = Dense(90,activation='relu')(y)
 
-        fc = Dense(6)
-        result_layer = Activation(activation='sigmoid')(y)
+        fc = Dense(6)(y)
+        result_layer = Activation(activation='sigmoid')(fc)
 
 
         if self.boost:
@@ -263,7 +318,65 @@ class model:
         return layer
 
     def CNNmodel(self):
-        pass
+
+        p = self.model_setting['dropout']
+        size_1 = self.model_setting['size1']
+        size_2 = self.model_setting['size2']
+
+        embedding_layer = SpatialDropout1D(p)(self.embedding_layer)
+        # embedding_layer = self.embedding_layer
+
+
+        conv2 = Conv1D(size_1,2, padding='same',activation='relu')(embedding_layer)
+        conv2 = MaxPool1D(pool_size=3,strides=2,padding='same')(conv2)
+        conv2 = Conv1D(size_2,2, padding='same',activation='relu')(conv2)
+        conv2 = GlobalMaxPooling1D()(conv2)
+
+        conv3 = Conv1D(size_1, 3, padding='same',activation='relu')(embedding_layer)
+        conv3 = MaxPool1D(pool_size=3,strides=2,padding='same')(conv3)
+        conv3 = Conv1D(size_2, 3, padding='same',activation='relu')(conv3)
+        conv3 = GlobalMaxPooling1D()(conv3)
+
+        conv4 = Conv1D(size_1, 4, padding='same',activation='relu')(embedding_layer)
+        conv4 = MaxPool1D(pool_size=3, strides=2, padding='same')(conv4)
+        conv4 = Conv1D(size_2, 4, padding='same',activation='relu')(conv4)
+        conv4 = GlobalMaxPooling1D()(conv4)
+
+        conv5 = Conv1D(size_1, 5, padding='same',activation='relu')(embedding_layer)
+        conv5 = MaxPool1D(pool_size=3,strides=2,padding='same')(conv5)
+        conv5 = Conv1D(size_2, 5, padding='same',activation='relu')(conv5)
+        conv5 = GlobalMaxPooling1D()(conv5)
+
+
+        add1 = add([conv2,conv3])
+        add2 = add([conv4, conv5])
+
+        self.cat_layers+=[
+            # conv2,conv3,conv5,conv4,
+            add1,add2
+        ]
+
+        # 拼接三个模块
+        y = Concatenate()(self.cat_layers)
+        # y = Dense(128,activation='selu')(y)
+        fc = Dense(6)(y)
+        result_layer = Activation(activation='sigmoid')(fc)
+
+        if self.boost:
+            result_layer = concatenate([result_layer, self.boost_layer], axis=-1)
+            result_layer = boostLayer()(result_layer)
+
+        self.result_model = Model(inputs=self.inputs, outputs=result_layer)
+
+        print(self.result_model.summary())
+
+        if self.lossname == 'rankLoss':
+            loss_layer = fc
+        else:
+            loss_layer = result_layer
+        self.set_loss(loss_layer)
+
+        return {}
 
     def CNNGLU(self):
         layer = {}
@@ -300,7 +413,7 @@ class model:
         self.set_loss(output_layer)
         return layer
 
-    def fit(self,X,Y,batch_size,epochs,sample_weight,verbose=0):
+    def fit(self,X,Y,epochs,batch_size=None,sample_weight=None,verbose=0):
         if BALANCE_GRAD:
             self.train_model.fit(X,np.concatenate([Y,Y],axis=1),batch_size,epochs,verbose,sample_weight)
         else:
@@ -314,30 +427,3 @@ class model:
 
     def load_weights(self,path,by_name=False):
         self.train_model.load_weights(path,by_name=by_name)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

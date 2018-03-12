@@ -26,7 +26,7 @@ FILTER_FREQ = 3
 
 USE_CHAR_VEC =False
 
-USE_TFIDF = True
+USE_TFIDF = False
 
 LEN_CHAR_SEQ = 800
 

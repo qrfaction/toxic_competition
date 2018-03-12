@@ -6,6 +6,8 @@ from textblob.translate import NotTranslated
 import json
 import re
 import input
+from Ref_Data import BATCHSIZE
+from random import randint
 
 def translate(comments):
     translation = {}
@@ -82,21 +84,21 @@ def splitdata(index_train,dataset):
 
 class Generate:
 
-    def __init__(self,train,labels,batchsize=256,shuffle=True):
+    def __init__(self,train,labels,batchsize=BATCHSIZE,shuffle=True,window_size = 0):
         """
         :param labels: 标签  array  (samples,6)
 
         """
         self.labels = labels
         self.trainset = train
+        self.seq_len = train['comment'].shape[1]
 
         self.positive_samples = {}
         self.negative_samples = {}
         for i in range(6):
             # where 返回元组
-            self.positive_samples[i] = np.where( labels[:,i]==1 )[0]
-            self.negative_samples[i] = np.where( labels[:,i]==0 )[0]
-        self.history = set([])
+            self.positive_samples[str(i)] = np.where( labels[:,i]==1 )[0]
+            self.negative_samples[str(i)] = np.where( labels[:,i]==0 )[0]
 
         self.batchsize = batchsize
         # sample
@@ -106,6 +108,7 @@ class Generate:
         if shuffle == True:
             np.random.shuffle(self.index)
 
+        self.window_size = window_size
 
     def genrerate_rank_samples(self,col):
 
@@ -116,13 +119,6 @@ class Generate:
             pos_index = random.choice(self.positive_samples[col])
             neg_index = random.choice(self.negative_samples[col])
 
-            pair = (pos_index , neg_index) \
-                if pos_index < neg_index else (neg_index,pos_index)
-
-            if pair in self.history or pos_index == neg_index:
-                continue
-
-            self.history.add(pair)
             num += 2
 
             samples_list.append(pos_index)
@@ -133,6 +129,27 @@ class Generate:
 
         train_y = self.labels[samples_list]
         return train_x,train_y
+
+    def genrerate_balance_samples(self):
+        col = random.choice([str(i) for i in range(6)])
+        return self.genrerate_rank_samples(col)
+
+
+    def get_randomPos(self):
+        start1 = random.randint(0, self.seq_len - 2*self.window_size)
+        end1 = start1 + self.window_size
+        start2 = random.randint(end1 , self.seq_len - self.window_size)
+        end2 = start2 + self.window_size
+        return start1, end1, start2, end2
+
+
+    def seq_noise(self,comments):
+        for i in range(len(comments)):
+            start1, end1, start2, end2 = self.get_randomPos()
+            temp = comments[i,start1:end1]
+            comments[i,start1:end1] = comments[i,start2:end2]
+            comments[i,start2:end2] = temp
+        return comments
 
     def genrerate_samples(self):
 
@@ -146,6 +163,9 @@ class Generate:
             np.random.shuffle(self.index)
             self.begin = 0
             self.end = self.batchsize
+
+        if self.window_size>0:
+            train_x['comment'] = self.seq_noise(train_x['comment'])
         return train_x,train_y
 
 def cal_mean(results,scores=None):
@@ -154,7 +174,7 @@ def cal_mean(results,scores=None):
         weights = np.ones((len(results),6))
     else :
         scores = np.array(scores)
-        scores -= 0.985
+        scores -= 0.980
         scores *= 10000
         weights = np.int64(scores)
         print(weights)
