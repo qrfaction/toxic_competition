@@ -85,7 +85,7 @@ def _train_model(model,model_name ,train_x, train_y, val_x, val_y,test ,batchsiz
             print(cur_score)
             print(Scores)
 
-            if epoch == 1 or best_score < cur_score:
+            if  best_score < cur_score:
                 best_score = cur_score
                 best_epoch = epoch
                 print(best_score,best_epoch,'\n')
@@ -102,6 +102,8 @@ def _auc_train(model, model_name, train_x, train_y, val_x, val_y, test, batchsiz
     from sklearn.metrics import roc_auc_score
 
     generator = tool.Generate(train_x, train_y, batchsize=batchsize)
+
+
 
     epoch = 1
     best_epoch = 1
@@ -123,7 +125,7 @@ def _auc_train(model, model_name, train_x, train_y, val_x, val_y, test, batchsiz
             print(cur_score)
             print(Scores)
 
-            if epoch == frequecy*1 or best_score < cur_score:
+            if  best_score < cur_score:
                 best_score = cur_score
                 best_epoch = epoch
                 print(best_score, best_epoch, '\n')
@@ -166,24 +168,32 @@ def train(maxlen=200,outputfile='baseline.csv.gz',wordvec='crawl'):
         'trainable': False,
         'loss': 'focalLoss',
         'load_weight': False,
-        'modelname': 'cnn',
+        'modelname': 'rnn',
         'char_weight': None,
         'maxlen':maxlen,
-        'window_size': 30,
+        'window_size': 0,
         'setting':{
-            'lr':0.001,
+            'lr':0.0008,
             'decay':0.004,
             'dropout': 0.3,
-            # 'size1':170,    rnn
-            # 'size2':80,
-            'size1':256,
-            'size2':128,
+            'size1':170,    #rnn
+            'size2':80,
+            # 'size1':256,
+            # 'size2':128,
         }
     }
-    cv(model_para, trainset, labels, testset, outputfile=outputfile, K=5)
+    cv(model_para, trainset, labels, testset, outputfile='rnnfocalLoss', K=10)
 
+    # model_para['loss'] = 'binary_crossentropy'
+    # cv(model_para, trainset, labels, testset, outputfile='cnnceLoss', K=10)
+    #
+    # model_para['modelname'] = 'rnn'
+    # cv(model_para, trainset, labels, testset, outputfile='rnnceLoss', K=10)
+    #
+    # model_para['loss'] = 'focalLoss'
+    # cv(model_para, trainset, labels, testset, outputfile='rnnfocalLoss', K=10)
 
 
 
 if __name__ == "__main__":
-    train(225)
+    train(200)

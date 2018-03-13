@@ -37,6 +37,7 @@ usecols = [
     'attacklevel',
 
 ]
+
 from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
 
 if USE_TOPIC:
@@ -143,10 +144,11 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
 
     return X,testX,labels,embedding_matrix
 
-def get_transfer_data(maxlen,language,fastText):
+def get_transfer_data(maxlen,fastText,trainfile,target):
 
-    train = read_dataset(language+'_train.csv')
-    labels = read_dataset('labels.csv').values
+    train = read_dataset(trainfile)
+    # labels = read_dataset(tar).values
+    labels = train[target].values
 
     train['comment_text'].fillna(replace_word['unknow'], inplace=True)
     text = train['comment_text'].values.tolist()
@@ -172,17 +174,25 @@ def get_transfer_data(maxlen,language,fastText):
 
     def get_embedding_matrix(word_index,fastText):
         from fastText import load_model
+        import input
         print('get embedding matrix')
 
         num_words = len(word_index) + 1
         # 停止符用0
-        embedding_matrix = np.zeros((num_words, 300))
+        embedding_matrix = np.random.uniform(-0.2,0.2,(num_words, 300))
         print(embedding_matrix.shape)
 
 
-        ft_model = load_model(PATH + fastText)
+        # ft_model = load_model(PATH + fastText)
+        embeddings_index = input.read_wordvec(fastText)
+        # for word, i in tqdm(word_index.items()):
+        #     embedding_matrix[i] = ft_model.get_word_vector(word).astype('float32')
         for word, i in tqdm(word_index.items()):
-            embedding_matrix[i] = ft_model.get_word_vector(word).astype('float32')
+            embedding_vector = embeddings_index.get(word)
+            if embedding_vector is None:
+                continue
+            else:
+                embedding_matrix[i] = embedding_vector
 
         return embedding_matrix
 

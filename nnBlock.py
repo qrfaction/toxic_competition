@@ -348,12 +348,12 @@ class model:
         conv5 = GlobalMaxPooling1D()(conv5)
 
 
-        add1 = add([conv2,conv3])
-        add2 = add([conv4, conv5])
+        # add1 = add([conv2,conv3])
+        # add2 = add([conv4, conv5])
 
         self.cat_layers+=[
-            # conv2,conv3,conv5,conv4,
-            add1,add2
+            conv2,conv3,conv5,conv4,
+            # add1,add2
         ]
 
         # 拼接三个模块
@@ -377,6 +377,16 @@ class model:
         self.set_loss(loss_layer)
 
         return {}
+
+    def transfer_model(self,modelname):
+        layers = self.get_layer(modelname)
+        fc =Concatenate()(self.cat_layers)
+        fc = Dense(1)(fc)
+
+        self.result_model = Model(inputs=self.inputs, outputs=fc)
+        self.train_model = self.result_model
+        self.train_model.compile(optimizer=self.opt,loss='mse')
+        return layers
 
     def CNNGLU(self):
         layer = {}
