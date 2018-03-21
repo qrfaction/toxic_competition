@@ -76,6 +76,36 @@ def cleanComment(comments):
 
         return comment
 
+    def deal_emoji(comment):
+        repl = {
+            "&lt;3": " good ",
+            ":d": " good ",
+            ":dd": " good ",
+            ":p": " good ",
+            "8\)": " good ",
+            ":-\)": " good ",
+            ":\)": " good ",
+            ";\)": " good ",
+            "\(-:": " good ",
+            "\(:": " good ",
+            "yay!": " good ",
+            "yay": " good ",
+            "yaay": " good ",
+            "yaaay": " good ",
+            "yaaaay": " good ",
+            "yaaaaay": " good ",
+            ":'\)": " sad ",
+            ":-\(": " bad ",
+            ":\(": " sad ",
+            ":s": " sad ",
+            ":-s": " sad ",
+            ":/": " worry ",
+            ":&gt;": " angry ",
+        }
+
+        for pattern,word in repl.items():
+            comment = re.sub(pattern, word, comment)
+        return comment
     patternLink = '(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'
     patternIP = '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
     patternEmail = '[A-Za-z\d]+([-_.][A-Za-z\d]+)*@([A-Za-z\d]+[-.])+[A-Za-z\d]{2,4}'
@@ -102,13 +132,15 @@ def cleanComment(comments):
         comment = re.sub(patternRgb, " ", comment)
 
         comment = correct_typos(comment)
+        comment = deal_emoji(comment)
+
         comment = re.sub("_", ' ', comment)
         comment = re.sub("#", ' # ', comment)
         # 去除非ascii字符
         comment = re.sub("[^\x00-\x7F]+", " ", comment)
 
         comment = re.sub(patternNum,replace_word['num'],comment)
-        comment = re.sub("\.+", ' . ', comment)            #帮助分词
+        comment = re.sub("\.", ' . ', comment)            #帮助分词
         comment = re.sub('[\|=\*/\`\~\\\\\}\{]+', ' ', comment)
         comment = re.sub('[\"]+', ' " ', comment)
         comment = re.sub('\'{2,}', ' " ', comment)
@@ -140,9 +172,9 @@ def cleanComment(comments):
         words = [APPO[word] if word in APPO else word for word in words]
 
         comment = " ".join(words)
-        # for i in range(97,97+26):
-        #     ch = chr(i)
-        #     comment = re.sub(ch +'{3,}',ch , comment)
+        for i in range(97,97+26):
+            ch = chr(i)
+            comment = re.sub(ch +'{3,}',ch , comment)
 
         # 纠正拼写错误/
         # for word,pos in tknzr(comment):
@@ -202,7 +234,7 @@ def pipeline(
     ):
     for filename in tqdm(file):
         dataset = input.read_dataset(filename)
-        dataset = translation_sub(dataset,filename[:2])
+        # dataset = translation_sub(dataset,filename[:2])
         dataset.fillna(replace_word['unknow'],inplace=True)
         dataset = createFeature.countFeature(dataset)
         clean_dataset(dataset,'clean_'+filename)
@@ -211,9 +243,9 @@ def pipeline(
     from ConvAIData import get_label_feature
     get_label_feature()
 
-    from createFeature import LDAFeature
-    from Ref_Data import NUM_TOPIC
-    LDAFeature(NUM_TOPIC)
+    # from createFeature import LDAFeature
+    # from Ref_Data import NUM_TOPIC
+    # LDAFeature(NUM_TOPIC)
 
 
 

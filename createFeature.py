@@ -22,10 +22,9 @@ def countFeature(dataset):
         df['caps_vs_length'] = df['capitals']/ df['total_length']
         df['num_words'] = df['comment_text'].apply(lambda x: min(len(x.split()),200))
 
-        df['count_unique_word'] = df["comment_text"].apply(lambda x:
-                                                           min(len(set(str(x).split())) ,200))
+        df['count_unique_word'] = df["comment_text"].apply(lambda x:min(len(set(str(x).split())) ,200))
         df["mean_word_len"] = df["comment_text"].apply(lambda x: min(np.mean([len(w) for w in str(x).split()]),10))
-
+        df['distri_' + '!'] = df['comment_text'].apply(lambda comment: min(comment.count('!'),20))
         return df
 
     def letter_distribution(df):
@@ -43,9 +42,9 @@ def countFeature(dataset):
 
     def deal_space(comment):
 
-        comment = re.sub("\\n+", ".", comment)
+        comment = re.sub("\\n+", " ", comment)
 
-        comment = re.sub("\.{2,}", ' . ', comment)
+        # comment = re.sub("\.{2,}", ' . ', comment)
 
         comment = re.sub("\s+", " ", comment)
 
@@ -54,7 +53,7 @@ def countFeature(dataset):
     dataset['count_sent'] = dataset["comment_text"].apply(lambda x: min(len(re.findall("\n", str(x))) + 1,10))
     dataset["comment_text"] = dataset["comment_text"].apply(deal_space)
     dataset = CountFeatures(dataset)
-    dataset = letter_distribution(dataset)
+    # dataset = letter_distribution(dataset)
     return dataset
 
 ''' 封装TF-IDF '''
@@ -96,8 +95,6 @@ def tfidfFeature(n_components=CHAR_N):
     print('save')
     train.to_csv(PATH + 'clean_train.csv', index=False)
     test.to_csv(PATH + 'clean_test.csv', index=False)
-
-
 
 def doc2bow(text,dictionary):
     return [dictionary.doc2bow(t) for t in tqdm(text)]

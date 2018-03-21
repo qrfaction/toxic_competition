@@ -1,11 +1,13 @@
 replace_word = {
     'num':' ',
-    'shuaping':' #shuabing# ',
-    'name':' #name# ',
-    'unknow':' #unk# ',
-    "link":" #link# ",
-    "time":" #time# ",
+    'shuaping':' shuabingshuabingshuabing ',
+    'name':' namenamename ',
+    'unknow':' unkunkunkunk ',
+    "link":" link ",
+    "time":" time ",
 }
+
+LOG_DIR = './log'
 
 USE_TOPIC = False
 USE_LETTERS = False
@@ -1347,27 +1349,28 @@ APPO = {
     "youself":"yourself",
     "retardedyour":"retard your",
     "250px":" ",
-    ');':'):',
-    ":(":"):",
-    ';)':'(:',
-    ';d':':d',
-    ';-)':'(:',
-    ';p':':p',
-    'd:':':d',
-    ':(':'):',
-    ']:':'):',
-    ':[':'):',
-    '];':'):',
-    '[:':'(:',
-    ';[':':(',
-    '>:(':':(',
-    ':]':'(:',
-    '(;':'(:',
-    "[8":"(:",
-    "(8":"(:",
-    "8)":"(:",
-    ":)":"(:",
-    ":-)":"(:",
+    ');':' sad ',
+    ":(":" sad ",
+    ';)':' happy ',
+    ';d':' happy ',
+    ';-)':' happy ',
+    ';p':' happy ',
+    'd:':' happy ',
+    ':(':' sad ',
+    ']:':' sad ',
+    ':[':' sad ',
+    '];':' sad ',
+    '[:':' happy ',
+    ';[':' sad ',
+    '>:(':' sad ',
+    ':]':' happy ',
+    '(;':' happy ',
+    "[8":" happy ",
+    "(8":" happy ",
+    "8)":" happy ",
+    ":)":" happy ",
+    ":-)":" happy ",
+    "):":" sad ",
 
 
 
@@ -1409,40 +1412,6 @@ APPO = {
 }
 
 USE_FAST =False
-
-# if __name__=='__main__':
-
-
-    # model_setting['hidden_size1']=170
-    # model_setting['hidden_size2']=85
-    # from train import train
-    # train(outputfile='crawl_170_85.csv.gz', wordvec='crawl')
-    #
-    #
-    # model_setting['hidden_size1']=128
-    # model_setting['hidden_size2']=64
-    # from train import train
-    # train(outputfile='glove_64.csv.gz', wordvec='glove')
-    #
-    #
-    # model_setting['hidden_size1'] = 150
-    # model_setting['hidden_size2'] = 75
-    # train(outputfile='crawl_150_75.csv.gz', wordvec='crawl')
-    #
-    # model_setting['hidden_size1'] = 140
-    # model_setting['hidden_size2'] = 70
-    # from train import train
-    # train(outputfile='crawl_140_70.csv.gz', wordvec='crawl')
-    #
-    # model_setting['hidden_size1'] = 170
-    # model_setting['hidden_size2'] = 70
-    # from train import train
-    # train(outputfile='crawl_170_70.csv.gz', wordvec='crawl')
-    #
-    # model_setting['hidden_size1'] = 180
-    # model_setting['hidden_size2'] = 70
-    # from train import train
-    # train(outputfile='crawl_180_70.csv.gz', wordvec='crawl')
 
 
 

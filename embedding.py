@@ -1,4 +1,4 @@
-from fastText import load_model
+# from fastText import load_model
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -94,12 +94,12 @@ def get_embedding_matrix(word_index,frequency,dimension,wordvecfile):
             embedding_matrix[i,dimension:] = np.array(postag_vec[tag])
 
 
-    print('num of word: ',len(word_index))
-    if USE_FAST:
-        ft_model = load_model(PATH + 'wiki.en.bin')
-        for word, i in tqdm(word_index.items()):
-            embedding_matrix[i, :dimension] = ft_model.get_word_vector(word).astype('float32')
-        del ft_model
+    # print('num of word: ',len(word_index))
+    # if USE_FAST:
+    #     ft_model = load_model(PATH + 'wiki.en.bin')
+    #     for word, i in tqdm(word_index.items()):
+    #         embedding_matrix[i, :dimension] = ft_model.get_word_vector(word).astype('float32')
+    #     del ft_model
 
     if wordvecfile !='fasttext':
         embeddings_index = input.read_wordvec(wordvecfile)

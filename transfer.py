@@ -17,7 +17,7 @@ def transfer(maxlen=200,modelname='rnn',loss="focalLoss"):
 
     trainset,labels, embedding_matrix = \
         input.get_transfer_data(maxlen, fastText='crawl',
-                        trainfile='clean_toxicity_annotated_comments.csv',target='toxicity')
+                        trainfile='clean_attack_annotated_comments.csv',target='attack')
 
     model = nnBlock.model(embedding_matrix,trainable=False,use_feature = False,
                       loss=loss,setting=setting)

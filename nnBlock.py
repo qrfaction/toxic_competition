@@ -3,12 +3,12 @@ from keras.layers import Conv1D,Multiply,Permute,MaxPool1D,SpatialDropout1D,conc
 from keras.models import Model
 from keras.optimizers import RMSprop,Nadam
 from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
-from Ref_Data import BATCHSIZE,WEIGHT_FILE,BALANCE_GRAD,USE_CHAR_VEC,LEN_CHAR_SEQ,USE_TFIDF,CHAR_N
-import tensorflow as tf
+from Ref_Data import BATCHSIZE,WEIGHT_FILE,BALANCE_GRAD,USE_CHAR_VEC,LEN_CHAR_SEQ,USE_TFIDF,CHAR_N,LOG_DIR
 import numpy as np
 from keras.engine.topology import Layer
 from keras import backend as K
 from keras import initializers
+
 
 K.clear_session()
 
@@ -60,8 +60,8 @@ def meanLoss(y_true,y_pred):
     return loss
 
 def focalLoss(y_true,y_pred):
-    weight1 = K.pow(1 - y_pred, 3)
-    weight2 = K.pow(y_pred, 3)
+    weight1 = K.pow(1 - y_pred, 1)
+    weight2 = K.pow(y_pred, 1)
     loss = y_true * K.log(y_pred) * weight1 +\
         (1 - y_true) * K.log(1 - y_pred) * weight2
 
@@ -123,37 +123,14 @@ def rankLoss(y_true,y_pred):
         num_pos = K.sum(y_true[:,i])
         num_neg = K.sum(1-y_true[:,i])
 
-        loss += -K.sum(logloss)/(num_neg*num_pos*2+1)
+        loss1 = -K.sum(logloss)/(num_neg*num_pos*2+1)
+
+        loss2 = y_true[:,i] * K.log(y_pred[:,i]) + \
+                    (1 - y_true[:,i]) * K.log(1 - y_pred[:,i])
+        loss2 = -K.mean(loss2,axis=-1)
+        loss +=loss1*loss2
+
     return loss/6
-
-# def rankLoss(y_true,y_pred):
-#     loss1 = 0
-#     for i in range(6):
-#         y = K.expand_dims(y_true[:,i],axis=1)    # [batch] -> [batch,1]
-#         y = K.repeat_elements(y,BATCHSIZE,1)          #  [batch,1] -> [batch,batch]
-#         y = y - K.transpose(y)
-#
-#         x = K.expand_dims(y_pred[:, i], axis=1)  # [batch] -> [batch,1]
-#         x = K.repeat_elements(x,BATCHSIZE, 1)  # [batch,1] -> [batch,batch]
-#         x = x - K.transpose(x)
-#
-#         label_y = K.pow(y,2)
-#
-#         logloss = K.log(K.sigmoid(y * x))*label_y      # y = 0的不产生loss
-#
-#
-#         num_pos = K.sum(y_true[:,i])
-#         num_neg = K.sum(1-y_true[:,i])
-#
-#         loss1 += -K.sum(logloss)/(num_neg*num_pos*2+1)
-#     loss1 = loss1/6
-#
-#     y_prob = K.sigmoid(y_pred)
-#     loss2 = y_true*K.log(y_prob)+(1-y_true)*K.log(1-y_prob)
-#     loss2 = -K.mean(loss2,axis=-1)/6
-#     loss = loss2 + loss1
-#     return loss
-
 
 
 def char2vec(X,Y,embedding_matrix,batchsize = 102400,epochs=5):
@@ -175,8 +152,6 @@ def char2vec(X,Y,embedding_matrix,batchsize = 102400,epochs=5):
             sample_y = Y[batchsize*i:batchsize*(i+1)]
             model.fit(sample_x,sample_y,verbose=1)
     np.save(WEIGHT_FILE+"char_vec.npy", embed_layer.get_weights())
-
-
 
 
 class model:
@@ -230,7 +205,7 @@ class model:
             if USE_TOPIC:
                 dim_features += NUM_TOPIC
             if USE_LETTERS:
-                dim_features += 27
+                dim_features += 1
             if USE_TFIDF:
                 dim_features += CHAR_N
             features_layer = Input(shape=(dim_features,), name='countFeature')
@@ -310,9 +285,11 @@ class model:
         self.set_loss(loss_layer)
 
         if self.load_weight:
-            gru1_weight = np.load(WEIGHT_FILE+self.lossname+'gru1_weight.npy')
+            name = self.lossname
+            name = 'focalLoss'
+            gru1_weight = np.load(WEIGHT_FILE+name+'gru1_weight.npy')
             gru1.set_weights(gru1_weight)
-            gru2_weight = np.load(WEIGHT_FILE+self.lossname+'gru2_weight.npy')
+            gru2_weight = np.load(WEIGHT_FILE+name+'gru2_weight.npy')
             gru2.set_weights(gru2_weight)
 
         return layer
@@ -425,15 +402,41 @@ class model:
 
     def fit(self,X,Y,epochs,batch_size=None,sample_weight=None,verbose=0):
         if BALANCE_GRAD:
-            self.train_model.fit(X,np.concatenate([Y,Y],axis=1),batch_size,epochs,verbose,sample_weight)
+            self.train_model.fit(X,np.concatenate([Y,Y],axis=1),batch_size,
+                                 epochs,verbose,sample_weight=sample_weight)
         else:
-            self.train_model.fit(X,Y, batch_size, epochs, verbose,sample_weight)
+            self.train_model.fit(X,Y, batch_size, epochs, verbose,
+                                 sample_weight=sample_weight)
 
     def predict(self,X,batch_size=2048, verbose=0):
         return self.result_model.predict(X,batch_size,verbose)
+
+    def evaulate(self,X,Y,batch_size=2048,sample_weight=None,verbose=0):
+        return self.train_model.evaluate(X, Y, batch_size,verbose, sample_weight)
 
     def save_weights(self,path):
         self.train_model.save_weights(path)
 
     def load_weights(self,path,by_name=False):
         self.train_model.load_weights(path,by_name=by_name)
+
+    def recompile(self,loss=None):
+
+        if loss is None:
+            self.loss = self.loss
+        else:
+            self.select_loss(loss)
+        self.train_model.compile(optimizer=self.opt,loss=self.loss)
+
+
+
+
+
+
+
+
+
+
+
+
+

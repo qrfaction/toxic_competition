@@ -1,6 +1,7 @@
 import pandas as pd
-import numpy as np
-from tqdm import tqdm
+from scipy.stats import ks_2samp
+
+
 PATH='data/'
 
 def cal_mean():
@@ -14,18 +15,30 @@ def cal_mean():
         print(tr_set.describe())
         print(valid_set.describe())
 
-def get_corr():
-    usecol = [
-        'toxicity_score_level',
-        'quoting_attack_level',
-        'recipient_attack_level',
-        'third_party_attack_level',
-        'other_attack_level',
-        'toxicity_level',
-        'attack_level',
-    ]
-    dataset = pd.read_csv(PATH+'clean_train.csv',usecols=usecol)
-    print(dataset.corr())
+
+def corr(first_file, second_file):
+    result = 'results/'
+    # assuming first column is `class_name_id`
+    first_df = pd.read_csv(result+first_file, index_col=0)
+    second_df = pd.read_csv(result+second_file, index_col=0)
+    class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+
+    for class_name in class_names:
+        # all correlations
+        print('\n Class: %s' % class_name)
+        print(' Pearson\'s correlation score: %0.6f' %
+              first_df[class_name].corr(
+                  second_df[class_name], method='pearson'))
+        print(' Kendall\'s correlation score: %0.6f' %
+              first_df[class_name].corr(
+                  second_df[class_name], method='kendall'))
+        print(' Spearman\'s correlation score: %0.6f' %
+              first_df[class_name].corr(
+                  second_df[class_name], method='spearman'))
+        ks_stat, p_value = ks_2samp(first_df[class_name].values,
+                                    second_df[class_name].values)
+        print(' Kolmogorov-Smirnov test:    KS-stat = %.6f    p-value = %.3e\n'
+              % (ks_stat, p_value))
 
 def test():
     a = pd.read_csv('data/labels.csv')
@@ -52,16 +65,20 @@ def bagging():
         # 'corr_blend.csv.gz':10,
         # 'my56.csv.gz':10,
         # "celoss_56.csv.gz":2,
-        "celoss64.csv.gz":1,
-        # "focal63.csv.gz":5,
+        # "celoss64.csv.gz":5,
+        # "cnnensemble.csv.gz":1,
+        # "rnnensemble.csv.gz":18,
+        # "rnnflensemble.csv.gz":20,
+        # "62_63To65.csv.gz":2,
+        "l1.csv.gz":3,
+        "l2.csv.gz":3,
+        # "ensemble.csv.gz":10,/
+        "blend_it_all.csv.gz":10,
 
-        # "focal62.csv.gz":6,"mybest63.csv.gz":8,    9865
-        # "62_63To65.csv.gz":7,"one_more_blend_65.csv.gz":5,   9874
-        "one_more_blend_65.csv.gz": 2,
-        "62_63To65.csv.gz":5,
-        "blend_it_all_68.csv.gz":4,
     }
-    output = pd.read_csv(PATH+'baseline.csv.gz')
+    # file_weight = dict([('rnnfl1Loss'+str(i)+'.csv.gz',1) for i in range(1,5)])
+    print(file_weight)
+    output = pd.read_csv(PATH+'l1.csv.gz')
     output[list_classes] = 0
     norm = 0
     for file,weight in file_weight.items():
@@ -72,12 +89,15 @@ def bagging():
 
     output[list_classes] /= norm
 
-    output.to_csv('output2.csv.gz',index=False,compression='gzip')
+    output.to_csv('ensemble.csv.gz',index=False,compression='gzip')
+
+
+
 
 # post_deal()
 # cal_mean()
 # post_deal()
 bagging()
-# get_corr()
+# corr('rnnensemble.csv.gz',"62_63To65.csv.gz")
 # output = pd.read_csv('baseline.csv')
 # print(output.isnull().sum())

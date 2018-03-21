@@ -43,7 +43,7 @@ from Ref_Data import NUM_TOPIC,USE_LETTERS,USE_TOPIC
 if USE_TOPIC:
     usecols += ['topic' + str(i) for i in range(NUM_TOPIC)]
 if USE_LETTERS:
-    usecols += ['distri_'+chr(i) for i in range(97,26+97)]
+    # usecols += ['distri_'+chr(i) for i in range(97,26+97)]
     usecols.append('distri_!')
 if USE_CHAR_VEC:
     usecols.append('char_text')
@@ -99,6 +99,8 @@ def get_train_test(maxlen,trainfile='clean_train.csv',wordvecfile=(('fasttext',3
             "mean_word_len",
             # 'caps_vs_length',
         ]
+        if USE_LETTERS:
+            normilze_feature.append('distri_!')
 
         dataset = train.append(test)
 
